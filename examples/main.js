@@ -54,6 +54,13 @@ const routes = [
     },
   },
   {
+    path: '/alignment',
+    component: () => import('Components/Routes/Alignment'),
+    meta: {
+      githubUrl: 'https://github.com/ueberdosis/tiptap/tree/master/examples/Components/Routes/Alignment',
+    },
+  },
+  {
     path: '/tables',
     component: () => import('Components/Routes/Tables'),
     meta: {
