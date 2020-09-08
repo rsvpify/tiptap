@@ -3,14 +3,48 @@ import {
   findSelectedNodeOfType,
 } from 'prosemirror-utils'
 
-export default function nodeIsActive(state, type, attrs = {}) {
+function nodeSelected(selection, type, attrs) {
+  const attrKeys = Object.keys(attrs)
   const predicate = node => node.type === type
-  const node = findSelectedNodeOfType(type)(state.selection)
-    || findParentNode(predicate)(state.selection)
+  const node = findSelectedNodeOfType(type)(selection)
+    || findParentNode(predicate)(selection)
 
-  if (!Object.keys(attrs).length || !node) {
+  if (!attrKeys.length || !node) {
     return !!node
   }
 
-  return node.node.hasMarkup(type, { ...node.node.attrs, ...attrs })
+  if (!['paragraph', 'heading', 'blockquote', 'list_item', 'table_cell', 'table_header'].includes(type.name)) {
+    return node.node.hasMarkup(type, { ...node.node.attrs, ...attrs })
+  }
+
+  const nodesAttrs = Object
+    .entries(node.node.attrs)
+    .filter(([key]) => attrKeys.includes(key))
+
+  return nodesAttrs.length
+    && nodesAttrs.every(([key, value]) => attrs[key] === value)
+}
+
+export default function nodeIsActive({ schema, selection }, type, attrs = {}) {
+  if (type.name !== 'alignment') {
+    return nodeSelected(selection, type, attrs)
+  }
+
+  const {
+    paragraph,
+    heading,
+    blockquote,
+    list_item: listItem,
+    table_cell: tableCell,
+    table_header: tableHeader,
+  } = schema.nodes
+
+  return [
+    paragraph,
+    heading,
+    blockquote,
+    listItem,
+    tableCell,
+    tableHeader,
+  ].some(node => nodeSelected(selection, node, attrs))
 }

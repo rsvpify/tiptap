@@ -1,5 +1,21 @@
-import { Node } from 'tiptap'
+import { Node, getParagraphNodeAttrs, getParagraphDOM } from 'tiptap'
 import { setBlockType, textblockTypeInputRule, toggleBlockType } from 'tiptap-commands'
+
+function getAttrs(dom) {
+  return {
+    ...getParagraphNodeAttrs(dom),
+    level: Number(dom.nodeName[1] || 1),
+  }
+}
+
+function toDOM(node) {
+  const dom = getParagraphDOM(node)
+  const level = node.attrs.level || 1
+
+  dom[0] = `h${level}`
+
+  return dom
+}
 
 export default class Heading extends Node {
 
@@ -16,9 +32,8 @@ export default class Heading extends Node {
   get schema() {
     return {
       attrs: {
-        level: {
-          default: 1,
-        },
+        align: { default: null },
+        level: { default: 1 },
       },
       content: 'inline*',
       group: 'block',
@@ -27,9 +42,9 @@ export default class Heading extends Node {
       parseDOM: this.options.levels
         .map(level => ({
           tag: `h${level}`,
-          attrs: { level },
+          getAttrs,
         })),
-      toDOM: node => [`h${node.attrs.level}`, 0],
+      toDOM,
     }
   }
 
