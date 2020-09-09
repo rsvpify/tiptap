@@ -28,8 +28,8 @@
     "prosemirror-model": "1.11.0",
     "prosemirror-state": "1.3.3",
     "prosemirror-view": "1.15.4",
-    "tiptap-commands": "^1.14.7",
-    "tiptap-utils": "^1.10.5"
+    "tiptap-commands": "https://gitpkg.now.sh/rsvpify/tiptap/packages/tiptap-commands?main",
+    "tiptap-utils": "https://gitpkg.now.sh/rsvpify/tiptap/packages/tiptap-utils?main"
   },
   "peerDependencies": {
     "vue": "^2.5.17",

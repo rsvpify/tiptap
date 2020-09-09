@@ -30,9 +30,9 @@
     "prosemirror-transform": "^1.2.8",
     "prosemirror-utils": "^0.9.6",
     "prosemirror-view": "^1.15.4",
-    "tiptap": "^1.29.7",
-    "tiptap-commands": "^1.14.7",
-    "tiptap-utils": "^1.10.5"
+    "tiptap": "https://gitpkg.now.sh/rsvpify/tiptap/packages/tiptap?main",
+    "tiptap-commands": "https://gitpkg.now.sh/rsvpify/tiptap/packages/tiptap-commands?main",
+    "tiptap-utils": "https://gitpkg.now.sh/rsvpify/tiptap/packages/tiptap-utils?main"
   },
   "peerDependencies": {
     "vue": "^2.5.17",

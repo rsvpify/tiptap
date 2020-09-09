@@ -1,6 +1,6 @@
 
     /*!
-    * tiptap-utils v1.10.4
+    * tiptap-utils v1.10.5
     * (c) 2020 überdosis GbR (limited liability)
     * @license MIT
     */
