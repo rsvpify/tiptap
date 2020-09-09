@@ -15,10 +15,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ueberdosis/tiptap.git"
+    "url": "git+https://github.com/rsvpify/tiptap.git"
   },
   "bugs": {
-    "url": "https://github.com/ueberdosis/tiptap/issues"
+    "url": "https://github.com/rsvpify/tiptap/issues"
   },
   "dependencies": {
     "lowlight": "^1.14.0",
