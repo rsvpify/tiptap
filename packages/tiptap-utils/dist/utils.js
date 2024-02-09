@@ -1,7 +1,7 @@
 
     /*!
     * tiptap-utils v1.10.5
-    * (c) 2020 überdosis GbR (limited liability)
+    * (c) 2024 überdosis GbR (limited liability)
     * @license MIT
     */
   
@@ -21,11 +21,9 @@
       marks = [...marks, ...node.marks];
     });
     const mark = marks.find(markItem => markItem.type.name === type.name);
-
     if (mark) {
       return mark.attrs;
     }
-
     return {};
   }
 
@@ -37,9 +35,9 @@
   }
 
   function getNodeAttrs(state, type, attrs) {
-    let attributes = attrs ? { ...attrs
+    let attributes = attrs ? {
+      ...attrs
     } : null;
-
     if ('align' in type.attrs) {
       const {
         schema: {
@@ -58,25 +56,22 @@
         if (align) {
           return false;
         }
-
         if (!nodeEqualsType({
           node,
           types: [paragraph, heading]
         })) {
           return true;
         }
-
         align = node.attrs.align || null;
         return false;
       });
-
       if (align) {
-        attributes = attrs ? { ...attrs,
+        attributes = attrs ? {
+          ...attrs,
           align
         } : null;
       }
     }
-
     return attributes;
   }
 
@@ -84,34 +79,26 @@
     if (!$pos || !type) {
       return false;
     }
-
     const start = $pos.parent.childAfter($pos.parentOffset);
-
     if (!start.node) {
       return false;
     }
-
     const link = start.node.marks.find(mark => mark.type === type);
-
     if (!link) {
       return false;
     }
-
     let startIndex = $pos.index();
     let startPos = $pos.start() + start.offset;
     let endIndex = startIndex + 1;
     let endPos = startPos + start.node.nodeSize;
-
     while (startIndex > 0 && link.isInSet($pos.parent.child(startIndex - 1).marks)) {
       startIndex -= 1;
       startPos -= $pos.parent.child(startIndex).nodeSize;
     }
-
     while (endIndex < $pos.parent.childCount && link.isInSet($pos.parent.child(endIndex).marks)) {
       endPos += $pos.parent.child(endIndex).nodeSize;
       endIndex += 1;
     }
-
     return {
       from: startPos,
       to: endPos
@@ -125,35 +112,28 @@
       to,
       empty
     } = state.selection;
-
     if (empty) {
       return !!type.isInSet(state.storedMarks || $from.marks());
     }
-
     return !!state.doc.rangeHasMark(from, to, type);
   }
 
   function nodeSelected(selection, type, attrs) {
     const attrKeys = Object.keys(attrs);
-
     const predicate = node => node.type === type;
-
     const node = prosemirrorUtils.findSelectedNodeOfType(type)(selection) || prosemirrorUtils.findParentNode(predicate)(selection);
-
     if (!attrKeys.length || !node) {
       return !!node;
     }
-
     if (!['paragraph', 'heading', 'blockquote', 'list_item', 'table_cell', 'table_header'].includes(type.name)) {
-      return node.node.hasMarkup(type, { ...node.node.attrs,
+      return node.node.hasMarkup(type, {
+        ...node.node.attrs,
         ...attrs
       });
     }
-
     const nodesAttrs = Object.entries(node.node.attrs).filter(([key]) => attrKeys.includes(key));
     return nodesAttrs.length && nodesAttrs.every(([key, value]) => attrs[key] === value);
   }
-
   function nodeIsActive({
     schema,
     selection
@@ -161,7 +141,6 @@
     if (type.name !== 'alignment') {
       return nodeSelected(selection, type, attrs);
     }
-
     const {
       paragraph,
       heading,
