@@ -1,7 +1,7 @@
 
     /*!
     * tiptap-extensions v1.32.8
-    * (c) 2024 überdosis GbR (limited liability)
+    * (c) 2020 überdosis GbR (limited liability)
     * @license MIT
     */
   
@@ -20,15 +20,18 @@ import { history, undo, redo, undoDepth, redoDepth } from 'prosemirror-history';
 function getAttrs(dom) {
   return getParagraphNodeAttrs(dom);
 }
+
 function toDOM(node) {
   const dom = getParagraphDOM(node);
   dom[0] = 'blockquote';
   return dom;
 }
+
 class Blockquote extends Node {
   get name() {
     return 'blockquote';
   }
+
   get schema() {
     return {
       attrs: {
@@ -47,12 +50,14 @@ class Blockquote extends Node {
       toDOM
     };
   }
+
   commands({
     type,
     schema
   }) {
     return () => toggleWrap(type, schema.nodes.paragraph);
   }
+
   keys({
     type
   }) {
@@ -60,17 +65,20 @@ class Blockquote extends Node {
       'Ctrl->': toggleWrap(type)
     };
   }
+
   inputRules({
     type
   }) {
     return [wrappingInputRule(/^\s*>\s$/, type)];
   }
+
 }
 
 class BulletList extends Node {
   get name() {
     return 'bullet_list';
   }
+
   get schema() {
     return {
       content: 'list_item+',
@@ -81,12 +89,14 @@ class BulletList extends Node {
       toDOM: () => ['ul', 0]
     };
   }
+
   commands({
     type,
     schema
   }) {
     return () => toggleList(type, schema.nodes.list_item);
   }
+
   keys({
     type,
     schema
@@ -95,17 +105,20 @@ class BulletList extends Node {
       'Shift-Ctrl-8': toggleList(type, schema.nodes.list_item)
     };
   }
+
   inputRules({
     type
   }) {
     return [wrappingInputRule(/^\s*([-+*])\s$/, type)];
   }
+
 }
 
 class CodeBlock extends Node {
   get name() {
     return 'code_block';
   }
+
   get schema() {
     return {
       content: 'text*',
@@ -121,12 +134,14 @@ class CodeBlock extends Node {
       toDOM: () => ['pre', ['code', 0]]
     };
   }
+
   commands({
     type,
     schema
   }) {
     return () => toggleBlockType(type, schema.nodes.paragraph);
   }
+
   keys({
     type
   }) {
@@ -134,11 +149,13 @@ class CodeBlock extends Node {
       'Shift-Ctrl-\\': setBlockType(type)
     };
   }
+
   inputRules({
     type
   }) {
     return [textblockTypeInputRule(/^```$/, type)];
   }
+
 }
 
 function getDecorations({
@@ -147,19 +164,24 @@ function getDecorations({
 }) {
   const decorations = [];
   const blocks = findBlockNodes(doc).filter(item => item.node.type.name === name);
+
   const flatten = list => list.reduce((a, b) => a.concat(Array.isArray(b) ? flatten(b) : b), []);
+
   function parseNodes(nodes, className = []) {
     return nodes.map(node => {
       const classes = [...className, ...(node.properties ? node.properties.className : [])];
+
       if (node.children) {
         return parseNodes(node.children, classes);
       }
+
       return {
         text: node.value,
         classes
       };
     });
   }
+
   blocks.forEach(block => {
     let startPos = block.pos + 1;
     const nodes = low.highlightAuto(block.node.textContent).value;
@@ -167,8 +189,7 @@ function getDecorations({
       const from = startPos;
       const to = from + node.text.length;
       startPos = to;
-      return {
-        ...node,
+      return { ...node,
         from,
         to
       };
@@ -181,6 +202,7 @@ function getDecorations({
   });
   return DecorationSet.create(doc, decorations);
 }
+
 function HighlightPlugin({
   name
 }) {
@@ -199,14 +221,15 @@ function HighlightPlugin({
         const oldNodeName = oldState.selection.$head.parent.type.name;
         const newNodeName = newState.selection.$head.parent.type.name;
         const oldNodes = findBlockNodes(oldState.doc).filter(item => item.node.type.name === name);
-        const newNodes = findBlockNodes(newState.doc).filter(item => item.node.type.name === name);
-        // Apply decorations if selection includes named node, or transaction changes named node.
+        const newNodes = findBlockNodes(newState.doc).filter(item => item.node.type.name === name); // Apply decorations if selection includes named node, or transaction changes named node.
+
         if (transaction.docChanged && ([oldNodeName, newNodeName].includes(name) || newNodes.length !== oldNodes.length)) {
           return getDecorations({
             doc: transaction.doc,
             name
           });
         }
+
         return decorationSet.map(transaction.mapping, transaction.doc);
       }
     },
@@ -214,6 +237,7 @@ function HighlightPlugin({
       decorations(state) {
         return this.getState(state);
       }
+
     }
   });
 }
@@ -221,6 +245,7 @@ function HighlightPlugin({
 class CodeBlockHighlight extends Node {
   constructor(options = {}) {
     super(options);
+
     try {
       Object.entries(this.options.languages).forEach(([name, mapping]) => {
         low.registerLanguage(name, mapping);
@@ -229,14 +254,17 @@ class CodeBlockHighlight extends Node {
       throw new Error('Invalid syntax highlight definitions: define at least one highlight.js language mapping');
     }
   }
+
   get name() {
     return 'code_block';
   }
+
   get defaultOptions() {
     return {
       languages: {}
     };
   }
+
   get schema() {
     return {
       content: 'text*',
@@ -252,12 +280,14 @@ class CodeBlockHighlight extends Node {
       toDOM: () => ['pre', ['code', 0]]
     };
   }
+
   commands({
     type,
     schema
   }) {
     return () => toggleBlockType(type, schema.nodes.paragraph);
   }
+
   keys({
     type
   }) {
@@ -265,22 +295,26 @@ class CodeBlockHighlight extends Node {
       'Shift-Ctrl-\\': setBlockType(type)
     };
   }
+
   inputRules({
     type
   }) {
     return [textblockTypeInputRule(/^```$/, type)];
   }
+
   get plugins() {
     return [HighlightPlugin({
       name: this.name
     })];
   }
+
 }
 
 class HardBreak extends Node {
   get name() {
     return 'hard_break';
   }
+
   get schema() {
     return {
       inline: true,
@@ -292,6 +326,7 @@ class HardBreak extends Node {
       toDOM: () => ['br']
     };
   }
+
   keys({
     type
   }) {
@@ -304,29 +339,33 @@ class HardBreak extends Node {
       'Shift-Enter': command
     };
   }
+
 }
 
 function getAttrs$1(dom) {
-  return {
-    ...getParagraphNodeAttrs(dom),
+  return { ...getParagraphNodeAttrs(dom),
     level: Number(dom.nodeName[1] || 1)
   };
 }
+
 function toDOM$1(node) {
   const dom = getParagraphDOM(node);
   const level = node.attrs.level || 1;
-  dom[0] = `h${level}`;
+  dom[0] = "h".concat(level);
   return dom;
 }
+
 class Heading extends Node {
   get name() {
     return 'heading';
   }
+
   get defaultOptions() {
     return {
       levels: [1, 2, 3, 4, 5, 6]
     };
   }
+
   get schema() {
     return {
       attrs: {
@@ -342,43 +381,47 @@ class Heading extends Node {
       defining: true,
       draggable: false,
       parseDOM: this.options.levels.map(level => ({
-        tag: `h${level}`,
+        tag: "h".concat(level),
         getAttrs: getAttrs$1
       })),
       toDOM: toDOM$1
     };
   }
+
   commands({
     type,
     schema
   }) {
     return attrs => toggleBlockType(type, schema.nodes.paragraph, attrs);
   }
+
   keys({
     type
   }) {
-    return this.options.levels.reduce((items, level) => ({
-      ...items,
+    return this.options.levels.reduce((items, level) => ({ ...items,
       ...{
-        [`Shift-Ctrl-${level}`]: setBlockType(type, {
+        ["Shift-Ctrl-".concat(level)]: setBlockType(type, {
           level
         })
       }
     }), {});
   }
+
   inputRules({
     type
   }) {
-    return this.options.levels.map(level => textblockTypeInputRule(new RegExp(`^(#{1,${level}})\\s$`), type, () => ({
+    return this.options.levels.map(level => textblockTypeInputRule(new RegExp("^(#{1,".concat(level, "})\\s$")), type, () => ({
       level
     })));
   }
+
 }
 
 class HorizontalRule extends Node {
   get name() {
     return 'horizontal_rule';
   }
+
   get schema() {
     return {
       group: 'block',
@@ -388,16 +431,19 @@ class HorizontalRule extends Node {
       toDOM: () => ['hr']
     };
   }
+
   commands({
     type
   }) {
     return () => (state, dispatch) => dispatch(state.tr.replaceSelectionWith(type.create()));
   }
+
   inputRules({
     type
   }) {
     return [nodeInputRule(/^(?:---|___\s|\*\*\*\s)$/, type)];
   }
+
 }
 
 /**
@@ -408,11 +454,13 @@ class HorizontalRule extends Node {
  * ![](image.jpg "Ipsum") -> [, "", "image.jpg", "Ipsum"]
  * ![Lorem](image.jpg "Ipsum") -> [, "Lorem", "image.jpg", "Ipsum"]
  */
+
 const IMAGE_INPUT_REGEX = /!\[(.+|:?)]\((\S+)(?:(?:\s+)["'](\S+)["'])?\)/;
 class Image extends Node {
   get name() {
     return 'image';
   }
+
   get schema() {
     return {
       inline: true,
@@ -438,6 +486,7 @@ class Image extends Node {
       toDOM: node => ['img', node.attrs]
     };
   }
+
   commands({
     type
   }) {
@@ -451,6 +500,7 @@ class Image extends Node {
       dispatch(transaction);
     };
   }
+
   inputRules({
     type
   }) {
@@ -463,19 +513,24 @@ class Image extends Node {
       };
     })];
   }
+
   get plugins() {
     return [new Plugin({
       props: {
         handleDOMEvents: {
           drop(view, event) {
             const hasFiles = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length;
+
             if (!hasFiles) {
               return;
             }
+
             const images = Array.from(event.dataTransfer.files).filter(file => /image/i.test(file.type));
+
             if (images.length === 0) {
               return;
             }
+
             event.preventDefault();
             const {
               schema
@@ -486,6 +541,7 @@ class Image extends Node {
             });
             images.forEach(image => {
               const reader = new FileReader();
+
               reader.onload = readerEvent => {
                 const node = schema.nodes.image.create({
                   src: readerEvent.target.result
@@ -493,27 +549,33 @@ class Image extends Node {
                 const transaction = view.state.tr.insert(coordinates.pos, node);
                 view.dispatch(transaction);
               };
+
               reader.readAsDataURL(image);
             });
           }
+
         }
       }
     })];
   }
+
 }
 
 function getAttrs$2(dom) {
   return getParagraphNodeAttrs(dom);
 }
+
 function toDOM$2(node) {
   const dom = getParagraphDOM(node);
   dom[0] = 'li';
   return dom;
 }
+
 class ListItem extends Node {
   get name() {
     return 'list_item';
   }
+
   get schema() {
     return {
       attrs: {
@@ -531,6 +593,7 @@ class ListItem extends Node {
       toDOM: toDOM$2
     };
   }
+
   keys({
     type
   }) {
@@ -540,9 +603,9 @@ class ListItem extends Node {
       'Shift-Tab': liftListItem(type)
     };
   }
+
 }
 
-// Create a matcher that matches when a specific character is typed. Useful for @mentions and #tags.
 function triggerCharacter({
   char = '@',
   allowSpaces = false,
@@ -552,37 +615,37 @@ function triggerCharacter({
     // cancel if top level node
     if ($position.depth <= 0) {
       return false;
-    }
+    } // Matching expressions used for later
 
-    // Matching expressions used for later
-    const escapedChar = `\\${char}`;
-    const suffix = new RegExp(`\\s${escapedChar}$`);
+
+    const escapedChar = "\\".concat(char);
+    const suffix = new RegExp("\\s".concat(escapedChar, "$"));
     const prefix = startOfLine ? '^' : '';
-    const regexp = allowSpaces ? new RegExp(`${prefix}${escapedChar}.*?(?=\\s${escapedChar}|$)`, 'gm') : new RegExp(`${prefix}(?:^)?${escapedChar}[^\\s${escapedChar}]*`, 'gm');
+    const regexp = allowSpaces ? new RegExp("".concat(prefix).concat(escapedChar, ".*?(?=\\s").concat(escapedChar, "|$)"), 'gm') : new RegExp("".concat(prefix, "(?:^)?").concat(escapedChar, "[^\\s").concat(escapedChar, "]*"), 'gm'); // Lookup the boundaries of the current node
 
-    // Lookup the boundaries of the current node
     const textFrom = $position.before();
     const textTo = $position.end();
     const text = $position.doc.textBetween(textFrom, textTo, '\0', '\0');
     let match = regexp.exec(text);
     let position;
+
     while (match !== null) {
       // JavaScript doesn't have lookbehinds; this hacks a check that first character is " "
       // or the line beginning
       const matchPrefix = match.input.slice(Math.max(0, match.index - 1), match.index);
+
       if (/^[\s\0]?$/.test(matchPrefix)) {
         // The absolute position of the match in the document
         const from = match.index + $position.start();
-        let to = from + match[0].length;
-
-        // Edge case handling; if spaces are allowed and we're directly in between
+        let to = from + match[0].length; // Edge case handling; if spaces are allowed and we're directly in between
         // two triggers
+
         if (allowSpaces && suffix.test(text.slice(to - 1, to + 1))) {
           match[0] += ' ';
           to += 1;
-        }
+        } // If the $position is located within the matched substring, return that range
 
-        // If the $position is located within the matched substring, return that range
+
         if (from < $position.pos && to >= $position.pos) {
           position = {
             range: {
@@ -594,11 +657,14 @@ function triggerCharacter({
           };
         }
       }
+
       match = regexp.exec(text);
     }
+
     return position;
   };
 }
+
 function SuggestionsPlugin({
   matcher = {
     char: '@',
@@ -617,39 +683,40 @@ function SuggestionsPlugin({
     if (!query) {
       return searchItems;
     }
+
     return searchItems.filter(item => JSON.stringify(item).toLowerCase().includes(query.toLowerCase()));
   }
 }) {
   return new Plugin$1({
     key: new PluginKey$1('suggestions'),
+
     view() {
       return {
         update: async (view, prevState) => {
           const prev = this.key.getState(prevState);
-          const next = this.key.getState(view.state);
+          const next = this.key.getState(view.state); // See how the state changed
 
-          // See how the state changed
           const moved = prev.active && next.active && prev.range.from !== next.range.from;
           const started = !prev.active && next.active;
           const stopped = prev.active && !next.active;
           const changed = !started && !stopped && prev.query !== next.query;
           const handleStart = started || moved;
           const handleChange = changed && !moved;
-          const handleExit = stopped || moved;
+          const handleExit = stopped || moved; // Cancel when suggestion isn't active
 
-          // Cancel when suggestion isn't active
           if (!handleStart && !handleChange && !handleExit) {
             return;
           }
-          const state = handleExit ? prev : next;
-          const decorationNode = document.querySelector(`[data-decoration-id="${state.decorationId}"]`);
 
-          // build a virtual node for popper.js or tippy.js
+          const state = handleExit ? prev : next;
+          const decorationNode = document.querySelector("[data-decoration-id=\"".concat(state.decorationId, "\"]")); // build a virtual node for popper.js or tippy.js
           // this can be used for building popups without a DOM node
+
           const virtualNode = decorationNode ? {
             getBoundingClientRect() {
               return decorationNode.getBoundingClientRect();
             },
+
             clientWidth: decorationNode.clientWidth,
             clientHeight: decorationNode.clientHeight
           } : null;
@@ -670,25 +737,28 @@ function SuggestionsPlugin({
                 attrs,
                 schema: view.state.schema
               })(view.state, view.dispatch, view);
+
               if (appendText) {
                 insertText(appendText)(view.state, view.dispatch, view);
               }
             }
-          };
+          }; // Trigger the hooks when necessary
 
-          // Trigger the hooks when necessary
           if (handleExit) {
             onExit(props);
           }
+
           if (handleChange) {
             onChange(props);
           }
+
           if (handleStart) {
             onEnter(props);
           }
         }
       };
     },
+
     state: {
       // Initialize the plugin's internal state.
       init() {
@@ -699,28 +769,26 @@ function SuggestionsPlugin({
           text: null
         };
       },
+
       // Apply changes to the plugin state from a view transaction.
       apply(tr, prev) {
         const {
           selection
         } = tr;
-        const next = {
-          ...prev
-        };
+        const next = { ...prev
+        }; // We can only be suggesting if there is no selection
 
-        // We can only be suggesting if there is no selection
         if (selection.from === selection.to) {
           // Reset active state if we just left the previous suggestion range
           if (selection.from < prev.range.from || selection.from > prev.range.to) {
             next.active = false;
-          }
+          } // Try to match against where our cursor currently is
 
-          // Try to match against where our cursor currently is
+
           const $position = selection.$from;
           const match = triggerCharacter(matcher)($position);
-          const decorationId = (Math.random() + 1).toString(36).substr(2, 5);
+          const decorationId = (Math.random() + 1).toString(36).substr(2, 5); // If we found a match, update the current state to show it
 
-          // If we found a match, update the current state to show it
           if (match) {
             next.active = true;
             next.decorationId = prev.decorationId ? prev.decorationId : decorationId;
@@ -732,17 +800,19 @@ function SuggestionsPlugin({
           }
         } else {
           next.active = false;
-        }
+        } // Make sure to empty the range if suggestion is inactive
 
-        // Make sure to empty the range if suggestion is inactive
+
         if (!next.active) {
           next.decorationId = null;
           next.range = {};
           next.query = null;
           next.text = null;
         }
+
         return next;
       }
+
     },
     props: {
       // Call the keydown hook if suggestion is active.
@@ -758,6 +828,7 @@ function SuggestionsPlugin({
           range
         });
       },
+
       // Setup decorator on the currently active suggestion.
       decorations(editorState) {
         const {
@@ -772,6 +843,7 @@ function SuggestionsPlugin({
           'data-decoration-id': decorationId
         })]);
       }
+
     }
   });
 }
@@ -780,6 +852,7 @@ class Mention extends Node {
   get name() {
     return 'mention';
   }
+
   get defaultOptions() {
     return {
       matcher: {
@@ -791,6 +864,7 @@ class Mention extends Node {
       suggestionClass: 'mention-suggestion'
     };
   }
+
   get schema() {
     return {
       attrs: {
@@ -804,7 +878,7 @@ class Mention extends Node {
       toDOM: node => ['span', {
         class: this.options.mentionClass,
         'data-mention-id': node.attrs.id
-      }, `${this.options.matcher.char}${node.attrs.label}`],
+      }, "".concat(this.options.matcher.char).concat(node.attrs.label)],
       parseDOM: [{
         tag: 'span[data-mention-id]',
         getAttrs: dom => {
@@ -818,11 +892,13 @@ class Mention extends Node {
       }]
     };
   }
+
   commands({
     schema
   }) {
     return attrs => replaceText(null, schema.nodes[this.name], attrs);
   }
+
   get plugins() {
     return [SuggestionsPlugin({
       command: ({
@@ -841,12 +917,14 @@ class Mention extends Node {
       suggestionClass: this.options.suggestionClass
     })];
   }
+
 }
 
 class OrderedList extends Node {
   get name() {
     return 'ordered_list';
   }
+
   get schema() {
     return {
       attrs: {
@@ -867,12 +945,14 @@ class OrderedList extends Node {
       }, 0]
     };
   }
+
   commands({
     type,
     schema
   }) {
     return () => toggleList(type, schema.nodes.list_item);
   }
+
   keys({
     type,
     schema
@@ -881,6 +961,7 @@ class OrderedList extends Node {
       'Shift-Ctrl-9': toggleList(type, schema.nodes.list_item)
     };
   }
+
   inputRules({
     type
   }) {
@@ -888,6 +969,7 @@ class OrderedList extends Node {
       order: +match[1]
     }), (match, node) => node.childCount + node.attrs.order === +match[1])];
   }
+
 }
 
 var TableNodes = tableNodes({
@@ -896,6 +978,7 @@ var TableNodes = tableNodes({
   cellAttributes: {
     align: {
       default: null,
+
       getFromDOM(dom) {
         const {
           textAlign = null
@@ -903,29 +986,35 @@ var TableNodes = tableNodes({
         const align = dom.getAttribute('align') || textAlign || '';
         return align && ALIGN_PATTERN.test(align) ? align : null;
       },
+
       setDOMAttr(value, attrs) {
         if (!value) {
           return;
         }
+
         const style = {
-          style: `${attrs.style || ''}text-align: ${value};`
+          style: "".concat(attrs.style || '', "text-align: ").concat(value, ";")
         };
         Object.assign(attrs, style);
       }
+
     },
     background: {
       default: null,
+
       getFromDOM(dom) {
         return dom.style.backgroundColor || null;
       },
+
       setDOMAttr(value, attrs) {
         if (value) {
           const style = {
-            style: `${attrs.style || ''}background-color: ${value};`
+            style: "".concat(attrs.style || '', "background-color: ").concat(value, ";")
           };
           Object.assign(attrs, style);
         }
       }
+
     }
   }
 });
@@ -934,14 +1023,17 @@ class Table extends Node {
   get name() {
     return 'table';
   }
+
   get defaultOptions() {
     return {
       resizable: false
     };
   }
+
   get schema() {
     return TableNodes.table;
   }
+
   commands({
     schema
   }) {
@@ -969,6 +1061,7 @@ class Table extends Node {
         if (mergeCells(state, dispatch)) {
           return;
         }
+
         splitCell(state, dispatch);
       },
       mergeCells: () => mergeCells,
@@ -980,53 +1073,64 @@ class Table extends Node {
       fixTables: () => fixTables
     };
   }
+
   keys() {
     return {
       Tab: goToNextCell(1),
       'Shift-Tab': goToNextCell(-1)
     };
   }
+
   get plugins() {
     return [...(this.options.resizable ? [columnResizing()] : []), tableEditing()];
   }
+
 }
 
 class TableHeader extends Node {
   get name() {
     return 'table_header';
   }
+
   get schema() {
     return TableNodes.table_header;
   }
+
 }
 
 class TableCell extends Node {
   get name() {
     return 'table_cell';
   }
+
   get schema() {
     return TableNodes.table_cell;
   }
+
 }
 
 class TableRow extends Node {
   get name() {
     return 'table_row';
   }
+
   get schema() {
     return TableNodes.table_row;
   }
+
 }
 
 class TodoItem extends Node {
   get name() {
     return 'todo_item';
   }
+
   get defaultOptions() {
     return {
       nested: false
     };
   }
+
   get view() {
     return {
       props: ['node', 'updateAttrs', 'view'],
@@ -1036,15 +1140,12 @@ class TodoItem extends Node {
             done: !this.node.attrs.done
           });
         }
+
       },
-      template: `
-        <li :data-type="node.type.name" :data-done="node.attrs.done.toString()" data-drag-handle>
-          <span class="todo-checkbox" contenteditable="false" @click="onChange"></span>
-          <div class="todo-content" ref="content" :contenteditable="view.editable.toString()"></div>
-        </li>
-      `
+      template: "\n        <li :data-type=\"node.type.name\" :data-done=\"node.attrs.done.toString()\" data-drag-handle>\n          <span class=\"todo-checkbox\" contenteditable=\"false\" @click=\"onChange\"></span>\n          <div class=\"todo-content\" ref=\"content\" :contenteditable=\"view.editable.toString()\"></div>\n        </li>\n      "
     };
   }
+
   get schema() {
     return {
       attrs: {
@@ -1070,13 +1171,14 @@ class TodoItem extends Node {
       },
       parseDOM: [{
         priority: 51,
-        tag: `[data-type="${this.name}"]`,
+        tag: "[data-type=\"".concat(this.name, "\"]"),
         getAttrs: dom => ({
           done: dom.getAttribute('data-done') === 'true'
         })
       }]
     };
   }
+
   keys({
     type
   }) {
@@ -1086,12 +1188,14 @@ class TodoItem extends Node {
       'Shift-Tab': liftListItem(type)
     };
   }
+
 }
 
 class TodoList extends Node {
   get name() {
     return 'todo_list';
   }
+
   get schema() {
     return {
       group: 'block',
@@ -1101,27 +1205,31 @@ class TodoList extends Node {
       }, 0],
       parseDOM: [{
         priority: 51,
-        tag: `[data-type="${this.name}"]`
+        tag: "[data-type=\"".concat(this.name, "\"]")
       }]
     };
   }
+
   commands({
     type,
     schema
   }) {
     return () => toggleList(type, schema.nodes.todo_item);
   }
+
   inputRules({
     type
   }) {
     return [wrappingInputRule(/^\s*(\[ \])\s$/, type)];
   }
+
 }
 
 class Bold extends Mark {
   get name() {
     return 'bold';
   }
+
   get schema() {
     return {
       parseDOM: [{
@@ -1136,6 +1244,7 @@ class Bold extends Mark {
       toDOM: () => ['strong', 0]
     };
   }
+
   keys({
     type
   }) {
@@ -1143,27 +1252,32 @@ class Bold extends Mark {
       'Mod-b': toggleMark(type)
     };
   }
+
   commands({
     type
   }) {
     return () => toggleMark(type);
   }
+
   inputRules({
     type
   }) {
     return [markInputRule(/(?:\*\*|__)([^*_]+)(?:\*\*|__)$/, type)];
   }
+
   pasteRules({
     type
   }) {
     return [markPasteRule(/(?:\*\*|__)([^*_]+)(?:\*\*|__)/g, type)];
   }
+
 }
 
 class Code extends Mark {
   get name() {
     return 'code';
   }
+
   get schema() {
     return {
       excludes: '_',
@@ -1173,6 +1287,7 @@ class Code extends Mark {
       toDOM: () => ['code', 0]
     };
   }
+
   keys({
     type
   }) {
@@ -1180,27 +1295,32 @@ class Code extends Mark {
       'Mod-`': toggleMark(type)
     };
   }
+
   commands({
     type
   }) {
     return () => toggleMark(type);
   }
+
   inputRules({
     type
   }) {
     return [markInputRule(/(?:`)([^`]+)(?:`)$/, type)];
   }
+
   pasteRules({
     type
   }) {
     return [markPasteRule(/(?:`)([^`]+)(?:`)/g, type)];
   }
+
 }
 
 class Italic extends Mark {
   get name() {
     return 'italic';
   }
+
   get schema() {
     return {
       parseDOM: [{
@@ -1213,6 +1333,7 @@ class Italic extends Mark {
       toDOM: () => ['em', 0]
     };
   }
+
   keys({
     type
   }) {
@@ -1220,33 +1341,39 @@ class Italic extends Mark {
       'Mod-i': toggleMark(type)
     };
   }
+
   commands({
     type
   }) {
     return () => toggleMark(type);
   }
+
   inputRules({
     type
   }) {
     return [markInputRule(/(?:^|[^_])(_([^_]+)_)$/, type), markInputRule(/(?:^|[^*])(\*([^*]+)\*)$/, type)];
   }
+
   pasteRules({
     type
   }) {
     return [markPasteRule(/_([^_]+)_/g, type), markPasteRule(/\*([^*]+)\*/g, type)];
   }
+
 }
 
 class Link extends Mark {
   get name() {
     return 'link';
   }
+
   get defaultOptions() {
     return {
       openOnClick: true,
       target: null
     };
   }
+
   get schema() {
     return {
       attrs: {
@@ -1265,13 +1392,13 @@ class Link extends Mark {
           target: dom.getAttribute('target')
         })
       }],
-      toDOM: node => ['a', {
-        ...node.attrs,
+      toDOM: node => ['a', { ...node.attrs,
         rel: 'noopener noreferrer nofollow',
         target: this.options.target
       }, 0]
     };
   }
+
   commands({
     type
   }) {
@@ -1279,9 +1406,11 @@ class Link extends Mark {
       if (attrs.href) {
         return updateMark(type, attrs);
       }
+
       return removeMark(type);
     };
   }
+
   pasteRules({
     type
   }) {
@@ -1289,10 +1418,12 @@ class Link extends Mark {
       href: url
     }))];
   }
+
   get plugins() {
     if (!this.options.openOnClick) {
       return [];
     }
+
     return [new Plugin({
       props: {
         handleClick: (view, pos, event) => {
@@ -1300,6 +1431,7 @@ class Link extends Mark {
             schema
           } = view.state;
           const attrs = getMarkAttrs(view.state, schema.marks.link);
+
           if (attrs.href && event.target instanceof HTMLAnchorElement) {
             event.stopPropagation();
             window.open(attrs.href, attrs.target);
@@ -1308,12 +1440,14 @@ class Link extends Mark {
       }
     })];
   }
+
 }
 
 class Strike extends Mark {
   get name() {
     return 'strike';
   }
+
   get schema() {
     return {
       parseDOM: [{
@@ -1329,6 +1463,7 @@ class Strike extends Mark {
       toDOM: () => ['s', 0]
     };
   }
+
   keys({
     type
   }) {
@@ -1336,27 +1471,32 @@ class Strike extends Mark {
       'Mod-d': toggleMark(type)
     };
   }
+
   commands({
     type
   }) {
     return () => toggleMark(type);
   }
+
   inputRules({
     type
   }) {
     return [markInputRule(/~([^~]+)~$/, type)];
   }
+
   pasteRules({
     type
   }) {
     return [markPasteRule(/~([^~]+)~/g, type)];
   }
+
 }
 
 class Underline extends Mark {
   get name() {
     return 'underline';
   }
+
   get schema() {
     return {
       parseDOM: [{
@@ -1368,6 +1508,7 @@ class Underline extends Mark {
       toDOM: () => ['u', 0]
     };
   }
+
   keys({
     type
   }) {
@@ -1375,11 +1516,13 @@ class Underline extends Mark {
       'Mod-u': toggleMark(type)
     };
   }
+
   commands({
     type
   }) {
     return () => toggleMark(type);
   }
+
 }
 
 class Alignment extends Extension {
@@ -1387,14 +1530,17 @@ class Alignment extends Extension {
     super(options);
     this._alignment = options.alignment || 'left';
   }
+
   get name() {
     return 'alignment';
   }
+
   get defaultOptions() {
     return {
       alignments: ['left', 'right', 'center', 'justify']
     };
   }
+
   get schema() {
     return {
       attrs: {
@@ -1404,20 +1550,24 @@ class Alignment extends Extension {
       }
     };
   }
+
   commands({
     type
   }) {
     return attrs => setTextAlignment(type, attrs);
   }
+
 }
 
 class Collaboration extends Extension {
   get name() {
     return 'collaboration';
   }
+
   init() {
     this.getSendableSteps = this.debounce(state => {
       const sendable = sendableSteps(state);
+
       if (sendable) {
         this.options.onSendable({
           editor: this.editor,
@@ -1435,6 +1585,7 @@ class Collaboration extends Extension {
       this.getSendableSteps(state);
     });
   }
+
   get defaultOptions() {
     return {
       version: 0,
@@ -1450,43 +1601,51 @@ class Collaboration extends Extension {
           view,
           schema
         } = this.editor;
+
         if (getVersion(state) > version) {
           return;
         }
+
         view.dispatch(receiveTransaction(state, steps.map(item => Step.fromJSON(schema, item.step)), steps.map(item => item.clientID)));
       }
     };
   }
+
   get plugins() {
     return [collab({
       version: this.options.version,
       clientID: this.options.clientID
     })];
   }
+
   debounce(fn, delay) {
     let timeout;
     return function (...args) {
       if (timeout) {
         clearTimeout(timeout);
       }
+
       timeout = setTimeout(() => {
         fn(...args);
         timeout = null;
       }, delay);
     };
   }
+
 }
 
 class Focus extends Extension {
   get name() {
     return 'focus';
   }
+
   get defaultOptions() {
     return {
       className: 'has-focus',
       nested: false
     };
   }
+
   get plugins() {
     return [new Plugin({
       props: {
@@ -1505,17 +1664,21 @@ class Focus extends Extension {
             anchor
           } = selection;
           const decorations = [];
+
           if (!active || !focused) {
             return false;
           }
+
           doc.descendants((node, pos) => {
             const hasAnchor = anchor >= pos && anchor <= pos + node.nodeSize;
+
             if (hasAnchor && !node.isText) {
               const decoration = Decoration.node(pos, pos + node.nodeSize, {
                 class: this.options.className
               });
               decorations.push(decoration);
             }
+
             return this.options.nested;
           });
           return DecorationSet.create(doc, decorations);
@@ -1523,18 +1686,21 @@ class Focus extends Extension {
       }
     })];
   }
+
 }
 
 class History extends Extension {
   get name() {
     return 'history';
   }
+
   get defaultOptions() {
     return {
       depth: '',
       newGroupDelay: ''
     };
   }
+
   keys() {
     const keymap = {
       'Mod-z': undo,
@@ -1546,12 +1712,14 @@ class History extends Extension {
     };
     return keymap;
   }
+
   get plugins() {
     return [history({
       depth: this.options.depth,
       newGroupDelay: this.options.newGroupDelay
     })];
   }
+
   commands() {
     return {
       undo: () => undo,
@@ -1560,12 +1728,14 @@ class History extends Extension {
       redoDepth: () => redoDepth
     };
   }
+
 }
 
 class Placeholder extends Extension {
   get name() {
     return 'placeholder';
   }
+
   get defaultOptions() {
     return {
       emptyEditorClass: 'is-editor-empty',
@@ -1575,6 +1745,7 @@ class Placeholder extends Extension {
       showOnlyCurrent: true
     };
   }
+
   get plugins() {
     return [new Plugin({
       props: {
@@ -1591,23 +1762,29 @@ class Placeholder extends Extension {
           } = selection;
           const decorations = [];
           const isEditorEmpty = doc.textContent.length === 0;
+
           if (!active) {
             return false;
           }
+
           doc.descendants((node, pos) => {
             const hasAnchor = anchor >= pos && anchor <= pos + node.nodeSize;
             const isNodeEmpty = node.content.size === 0;
+
             if ((hasAnchor || !this.options.showOnlyCurrent) && isNodeEmpty) {
               const classes = [this.options.emptyNodeClass];
+
               if (isEditorEmpty) {
                 classes.push(this.options.emptyEditorClass);
               }
+
               const decoration = Decoration.node(pos, pos + node.nodeSize, {
                 class: classes.join(' '),
                 'data-empty-text': typeof this.options.emptyNodeText === 'function' ? this.options.emptyNodeText(node) : this.options.emptyNodeText
               });
               decorations.push(decoration);
             }
+
             return false;
           });
           return DecorationSet.create(doc, decorations);
@@ -1615,6 +1792,7 @@ class Placeholder extends Extension {
       }
     })];
   }
+
 }
 
 class Search extends Extension {
@@ -1624,9 +1802,11 @@ class Search extends Extension {
     this.searchTerm = null;
     this._updating = false;
   }
+
   get name() {
     return 'search';
   }
+
   get defaultOptions() {
     return {
       autoSelectNext: true,
@@ -1637,6 +1817,7 @@ class Search extends Extension {
       alwaysSearch: false
     };
   }
+
   commands() {
     return {
       find: attrs => this.find(attrs),
@@ -1645,21 +1826,26 @@ class Search extends Extension {
       clearSearch: () => this.clear()
     };
   }
+
   get findRegExp() {
     return RegExp(this.searchTerm, !this.options.caseSensitive ? 'gui' : 'gu');
   }
+
   get decorations() {
     return this.results.map(deco => Decoration.inline(deco.from, deco.to, {
       class: this.options.findClass
     }));
   }
+
   _search(doc) {
     this.results = [];
     const mergedTextNodes = [];
     let index = 0;
+
     if (!this.searchTerm) {
       return;
     }
+
     doc.descendants((node, pos) => {
       if (node.isText) {
         if (mergedTextNodes[index]) {
@@ -1682,12 +1868,13 @@ class Search extends Extension {
       pos
     }) => {
       const search = this.findRegExp;
-      let m;
-      // eslint-disable-next-line no-cond-assign
+      let m; // eslint-disable-next-line no-cond-assign
+
       while (m = search.exec(text)) {
         if (m[0] === '') {
           break;
         }
+
         this.results.push({
           from: pos + m.index,
           to: pos + m.index + m[0].length
@@ -1695,12 +1882,15 @@ class Search extends Extension {
       }
     });
   }
+
   replace(replace) {
     return (state, dispatch) => {
       const firstResult = this.results[0];
+
       if (!firstResult) {
         return;
       }
+
       const {
         from,
         to
@@ -1709,11 +1899,14 @@ class Search extends Extension {
       this.editor.commands.find(this.searchTerm);
     };
   }
+
   rebaseNextResult(replace, index, lastOffset = 0) {
     const nextIndex = index + 1;
+
     if (!this.results[nextIndex]) {
       return null;
     }
+
     const {
       from: currentFrom,
       to: currentTo
@@ -1729,14 +1922,17 @@ class Search extends Extension {
     };
     return offset;
   }
+
   replaceAll(replace) {
     return ({
       tr
     }, dispatch) => {
       let offset;
+
       if (!this.results.length) {
         return;
       }
+
       this.results.forEach(({
         from,
         to
@@ -1748,18 +1944,21 @@ class Search extends Extension {
       this.editor.commands.find(this.searchTerm);
     };
   }
+
   find(searchTerm) {
     return (state, dispatch) => {
       this.searchTerm = this.options.disableRegex ? searchTerm.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') : searchTerm;
       this.updateView(state, dispatch);
     };
   }
+
   clear() {
     return (state, dispatch) => {
       this.searchTerm = null;
       this.updateView(state, dispatch);
     };
   }
+
   updateView({
     tr
   }, dispatch) {
@@ -1767,23 +1966,29 @@ class Search extends Extension {
     dispatch(tr);
     this._updating = false;
   }
+
   createDeco(doc) {
     this._search(doc);
+
     return this.decorations ? DecorationSet.create(doc, this.decorations) : [];
   }
+
   get plugins() {
     return [new Plugin({
       state: {
         init() {
           return DecorationSet.empty;
         },
+
         apply: (tr, old) => {
           if (this._updating || this.options.searching || tr.docChanged && this.options.alwaysSearch) {
             return this.createDeco(tr.doc);
           }
+
           if (tr.docChanged) {
             return old.map(tr.mapping, tr.doc);
           }
+
           return old;
         }
       },
@@ -1791,21 +1996,25 @@ class Search extends Extension {
         decorations(state) {
           return this.getState(state);
         }
+
       }
     })];
   }
+
 }
 
 class TrailingNode extends Extension {
   get name() {
     return 'trailing_node';
   }
+
   get defaultOptions() {
     return {
       node: 'paragraph',
       notAfter: ['paragraph']
     };
   }
+
   get plugins() {
     const plugin = new PluginKey(this.name);
     const disabledNodes = Object.entries(this.editor.schema.nodes).map(([, value]) => value).filter(node => this.options.notAfter.includes(node.name));
@@ -1817,9 +2026,11 @@ class TrailingNode extends Extension {
             state
           } = view;
           const insertNodeAtEnd = plugin.getState(state);
+
           if (!insertNodeAtEnd) {
             return;
           }
+
           const {
             doc,
             schema,
@@ -1842,6 +2053,7 @@ class TrailingNode extends Extension {
           if (!tr.docChanged) {
             return value;
           }
+
           const lastNode = tr.doc.lastChild;
           return !nodeEqualsType({
             node: lastNode,
@@ -1851,6 +2063,7 @@ class TrailingNode extends Extension {
       }
     })];
   }
+
 }
 
 export { Alignment, Blockquote, Bold, BulletList, Code, CodeBlock, CodeBlockHighlight, Collaboration, Focus, HardBreak, Heading, HighlightPlugin as Highlight, History, HorizontalRule, Image, Italic, Link, ListItem, Mention, OrderedList, Placeholder, Search, Strike, SuggestionsPlugin as Suggestions, Table, TableCell, TableHeader, TableRow, TodoItem, TodoList, TrailingNode, Underline };

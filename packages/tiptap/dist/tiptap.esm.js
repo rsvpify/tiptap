@@ -1,7 +1,7 @@
 
     /*!
     * tiptap v1.29.7
-    * (c) 2024 überdosis GbR (limited liability)
+    * (c) 2020 überdosis GbR (limited liability)
     * @license MIT
     */
   
@@ -50,6 +50,7 @@ class ComponentView {
     this.dom = this.createDOM();
     this.contentDOM = this.vm.$refs.content;
   }
+
   createDOM() {
     const Component = Vue.extend(this.component);
     const props = {
@@ -62,25 +63,31 @@ class ComponentView {
       options: this.extension.options,
       updateAttrs: attrs => this.updateAttrs(attrs)
     };
+
     if (typeof this.extension.setSelection === 'function') {
       this.setSelection = this.extension.setSelection;
     }
+
     if (typeof this.extension.update === 'function') {
       this.update = this.extension.update;
     }
+
     this.vm = new Component({
       parent: this.parent,
       propsData: props
     }).$mount();
     return this.vm.$el;
   }
+
   update(node, decorations) {
     if (node.type !== this.node.type) {
       return false;
     }
+
     if (node === this.node && this.decorations === decorations) {
       return true;
     }
+
     this.node = node;
     this.decorations = decorations;
     this.updateComponentProps({
@@ -89,27 +96,30 @@ class ComponentView {
     });
     return true;
   }
+
   updateComponentProps(props) {
     if (!this.vm._props) {
       return;
-    }
-
-    // Update props in component
+    } // Update props in component
     // TODO: Avoid mutating a prop directly.
     // Maybe there is a better way to do this?
+
+
     const originalSilent = Vue.config.silent;
     Vue.config.silent = true;
     Object.entries(props).forEach(([key, value]) => {
       this.vm._props[key] = value;
-    });
-    // this.vm._props.node = node
+    }); // this.vm._props.node = node
     // this.vm._props.decorations = decorations
+
     Vue.config.silent = originalSilent;
   }
+
   updateAttrs(attrs) {
     if (!this.view.editable) {
       return;
     }
+
     const {
       state
     } = this.view;
@@ -117,38 +127,40 @@ class ComponentView {
       type
     } = this.node;
     const pos = this.getPos();
-    const newAttrs = {
-      ...this.node.attrs,
+    const newAttrs = { ...this.node.attrs,
       ...attrs
     };
     const transaction = this.isMark ? state.tr.removeMark(pos.from, pos.to, type).addMark(pos.from, pos.to, type.create(newAttrs)) : state.tr.setNodeMarkup(pos, null, newAttrs);
     this.view.dispatch(transaction);
-  }
-
-  // prevent a full re-render of the vue component on update
+  } // prevent a full re-render of the vue component on update
   // we'll handle prop updates in `update()`
+
+
   ignoreMutation(mutation) {
     // allow leaf nodes to be selected
     if (mutation.type === 'selection') {
       return false;
     }
+
     if (!this.contentDOM) {
       return true;
     }
-    return !this.contentDOM.contains(mutation.target);
-  }
 
-  // disable (almost) all prosemirror event listener for node views
+    return !this.contentDOM.contains(mutation.target);
+  } // disable (almost) all prosemirror event listener for node views
+
+
   stopEvent(event) {
     if (typeof this.extension.stopEvent === 'function') {
       return this.extension.stopEvent(event);
     }
-    const draggable = !!this.extension.schema.draggable;
 
-    // support a custom drag handle
+    const draggable = !!this.extension.schema.draggable; // support a custom drag handle
+
     if (draggable && event.type === 'mousedown') {
       const dragHandle = event.target.closest && event.target.closest('[data-drag-handle]');
       const isValidDragHandle = dragHandle && (this.dom === dragHandle || this.dom.contains(dragHandle));
+
       if (isValidDragHandle) {
         this.captureEvents = false;
         document.addEventListener('dragend', () => {
@@ -158,65 +170,79 @@ class ComponentView {
         });
       }
     }
+
     const isCopy = event.type === 'copy';
     const isPaste = event.type === 'paste';
     const isCut = event.type === 'cut';
     const isDrag = event.type.startsWith('drag') || event.type === 'drop';
+
     if (draggable && isDrag || isCopy || isPaste || isCut) {
       return false;
     }
+
     return this.captureEvents;
   }
+
   selectNode() {
     this.updateComponentProps({
       selected: true
     });
   }
+
   deselectNode() {
     this.updateComponentProps({
       selected: false
     });
   }
+
   getMarkPos() {
     const pos = this.view.posAtDOM(this.dom);
     const resolvedPos = this.view.state.doc.resolve(pos);
     const range = getMarkRange(resolvedPos, this.node.type);
     return range;
   }
+
   destroy() {
     this.vm.$destroy();
   }
+
 }
 
 class Emitter {
   // Add an event listener for given event
   on(event, fn) {
-    this._callbacks = this._callbacks || {};
-    // Create namespace for this event
+    this._callbacks = this._callbacks || {}; // Create namespace for this event
+
     if (!this._callbacks[event]) {
       this._callbacks[event] = [];
     }
+
     this._callbacks[event].push(fn);
-    return this;
-  }
-  emit(event, ...args) {
-    this._callbacks = this._callbacks || {};
-    const callbacks = this._callbacks[event];
-    if (callbacks) {
-      callbacks.forEach(callback => callback.apply(this, args));
-    }
+
     return this;
   }
 
-  // Remove event listener for given event.
+  emit(event, ...args) {
+    this._callbacks = this._callbacks || {};
+    const callbacks = this._callbacks[event];
+
+    if (callbacks) {
+      callbacks.forEach(callback => callback.apply(this, args));
+    }
+
+    return this;
+  } // Remove event listener for given event.
   // If fn is not provided, all event listeners for that event will be removed.
   // If neither is provided, all event listeners will be removed.
+
+
   off(event, fn) {
     if (!arguments.length) {
       this._callbacks = {};
     } else {
       // event listeners for the given event
       const callbacks = this._callbacks ? this._callbacks[event] : null;
+
       if (callbacks) {
         if (fn) {
           this._callbacks[event] = callbacks.filter(cb => cb !== fn); // remove specific handler
@@ -225,44 +251,55 @@ class Emitter {
         }
       }
     }
+
     return this;
   }
+
 }
 
 class Extension {
   constructor(options = {}) {
-    this.options = {
-      ...this.defaultOptions,
+    this.options = { ...this.defaultOptions,
       ...options
     };
   }
+
   init() {
     return null;
   }
+
   bindEditor(editor = null) {
     this.editor = editor;
   }
+
   get name() {
     return null;
   }
+
   get type() {
     return 'extension';
   }
+
   get defaultOptions() {
     return {};
   }
+
   get plugins() {
     return [];
   }
+
   inputRules() {
     return [];
   }
+
   pasteRules() {
     return [];
   }
+
   keys() {
     return {};
   }
+
 }
 
 class ExtensionManager {
@@ -273,58 +310,63 @@ class ExtensionManager {
     });
     this.extensions = extensions;
   }
+
   get nodes() {
     return this.extensions.filter(extension => extension.type === 'node').reduce((nodes, {
       name,
       schema
-    }) => ({
-      ...nodes,
+    }) => ({ ...nodes,
       [name]: schema
     }), {});
   }
+
   get options() {
     const {
       view
     } = this;
-    return this.extensions.reduce((nodes, extension) => ({
-      ...nodes,
+    return this.extensions.reduce((nodes, extension) => ({ ...nodes,
       [extension.name]: new Proxy(extension.options, {
         set(obj, prop, value) {
           const changed = obj[prop] !== value;
           Object.assign(obj, {
             [prop]: value
           });
+
           if (changed) {
             view.updateState(view.state);
           }
+
           return true;
         }
+
       })
     }), {});
   }
+
   get marks() {
     return this.extensions.filter(extension => extension.type === 'mark').reduce((marks, {
       name,
       schema
-    }) => ({
-      ...marks,
+    }) => ({ ...marks,
       [name]: schema
     }), {});
   }
+
   get nodeExtensions() {
     return this.extensions.filter(extension => extension.type === 'extension' && extension.name === 'alignment').reduce((extensions, {
       name,
       schema
-    }) => ({
-      ...extensions,
+    }) => ({ ...extensions,
       [name]: schema
     }), {});
   }
+
   get plugins() {
     return this.extensions.filter(extension => extension.plugins).reduce((allPlugins, {
       plugins
     }) => [...allPlugins, ...plugins], []);
   }
+
   keymaps({
     schema
   }) {
@@ -332,11 +374,12 @@ class ExtensionManager {
       schema
     }));
     const nodeMarkKeymaps = this.extensions.filter(extension => ['node', 'mark'].includes(extension.type)).filter(extension => extension.keys).map(extension => extension.keys({
-      type: schema[`${extension.type}s`][extension.name],
+      type: schema["".concat(extension.type, "s")][extension.name],
       schema
     }));
     return [...extensionKeymaps, ...nodeMarkKeymaps].map(keys => keymap(keys));
   }
+
   inputRules({
     schema,
     excludedExtensions
@@ -347,11 +390,12 @@ class ExtensionManager {
       schema
     }));
     const nodeMarkInputRules = allowedExtensions.filter(extension => ['node', 'mark'].includes(extension.type)).filter(extension => extension.inputRules).map(extension => extension.inputRules({
-      type: schema[`${extension.type}s`][extension.name],
+      type: schema["".concat(extension.type, "s")][extension.name],
       schema
     }));
     return [...extensionInputRules, ...nodeMarkInputRules].reduce((allInputRules, inputRules) => [...allInputRules, ...inputRules], []);
   }
+
   pasteRules({
     schema,
     excludedExtensions
@@ -362,11 +406,12 @@ class ExtensionManager {
       schema
     }));
     const nodeMarkPasteRules = allowedExtensions.filter(extension => ['node', 'mark'].includes(extension.type)).filter(extension => extension.pasteRules).map(extension => extension.pasteRules({
-      type: schema[`${extension.type}s`][extension.name],
+      type: schema["".concat(extension.type, "s")][extension.name],
       schema
     }));
     return [...extensionPasteRules, ...nodeMarkPasteRules].reduce((allPasteRules, pasteRules) => [...allPasteRules, ...pasteRules], []);
   }
+
   commands({
     schema,
     view
@@ -380,16 +425,19 @@ class ExtensionManager {
       const value = extension.commands({
         schema,
         ...(['node', 'mark'].includes(type) ? {
-          type: schema[`${type}s`][name]
+          type: schema["".concat(type, "s")][name]
         } : {})
       });
+
       const apply = (cb, attrs) => {
         if (!view.editable) {
           return false;
         }
+
         view.focus();
         return cb(attrs)(view.state, view.dispatch, view);
       };
+
       const handle = (_name, _value) => {
         if (Array.isArray(_value)) {
           commands[_name] = attrs => _value.forEach(callback => apply(callback, attrs));
@@ -397,6 +445,7 @@ class ExtensionManager {
           commands[_name] = attrs => apply(_value, attrs);
         }
       };
+
       if (typeof value === 'object') {
         Object.entries(value).forEach(([commandName, commandValue]) => {
           handle(commandName, commandValue);
@@ -404,12 +453,13 @@ class ExtensionManager {
       } else {
         handle(name, value);
       }
-      return {
-        ...allCommands,
+
+      return { ...allCommands,
         ...commands
       };
     }, {});
   }
+
 }
 
 function getParagraphDOM(node) {
@@ -418,12 +468,15 @@ function getParagraphDOM(node) {
   } = node.attrs;
   const attrs = {};
   let style = '';
+
   if (align && align !== 'left') {
-    style += `text-align: ${align};`;
+    style += "text-align: ".concat(align, ";");
   }
+
   if (style) {
     attrs.style = style;
   }
+
   return ['p', attrs, 0];
 }
 
@@ -433,9 +486,11 @@ function getParagraphNodeAttrs(dom) {
   } = dom.style;
   const attrs = {};
   const align = dom.getAttribute('align') || textAlign || '';
+
   if (align && ALIGN_PATTERN.test(align)) {
     attrs.align = align;
   }
+
   return attrs;
 }
 
@@ -450,6 +505,7 @@ function injectCSS (css) {
     const {
       firstChild
     } = head;
+
     if (firstChild) {
       head.insertBefore(style, firstChild);
     } else {
@@ -462,18 +518,23 @@ class Mark extends Extension {
   constructor(options = {}) {
     super(options);
   }
+
   get type() {
     return 'mark';
   }
+
   get view() {
     return null;
   }
+
   get schema() {
     return null;
   }
+
   command() {
     return () => {};
   }
+
 }
 
 function minMax(value = 0, min = 0, max = 0) {
@@ -484,41 +545,51 @@ class Node extends Extension {
   constructor(options = {}) {
     super(options);
   }
+
   get type() {
     return 'node';
   }
+
   get view() {
     return null;
   }
+
   get schema() {
     return null;
   }
+
   command() {
     return () => {};
   }
+
 }
 
 class Doc extends Node {
   get name() {
     return 'doc';
   }
+
   get schema() {
     return {
       content: 'block+'
     };
   }
+
 }
 
 function getAttrs(dom) {
   return getParagraphNodeAttrs(dom);
 }
+
 function toDOM(node) {
   return getParagraphDOM(node);
 }
+
 class Paragraph extends Node {
   get name() {
     return 'paragraph';
   }
+
   get schema() {
     return {
       attrs: {
@@ -536,23 +607,27 @@ class Paragraph extends Node {
       toDOM
     };
   }
+
   commands({
     type,
     schema
   }) {
     return () => toggleBlockType(type, schema.nodes.paragraph);
   }
+
 }
 
 class Text extends Node {
   get name() {
     return 'text';
   }
+
   get schema() {
     return {
       group: 'inline'
     };
   }
+
 }
 
 var css = ".ProseMirror {\n  position: relative;\n}\n\n.ProseMirror {\n  word-wrap: break-word;\n  white-space: pre-wrap;\n  -webkit-font-variant-ligatures: none;\n  font-variant-ligatures: none;\n}\n\n.ProseMirror pre {\n  white-space: pre-wrap;\n}\n\n.ProseMirror-gapcursor {\n  display: none;\n  pointer-events: none;\n  position: absolute;\n}\n\n.ProseMirror-gapcursor:after {\n  content: \"\";\n  display: block;\n  position: absolute;\n  top: -2px;\n  width: 20px;\n  border-top: 1px solid black;\n  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;\n}\n\n@keyframes ProseMirror-cursor-blink {\n  to {\n    visibility: hidden;\n  }\n}\n\n.ProseMirror-hideselection *::selection {\n  background: transparent;\n}\n\n.ProseMirror-hideselection *::-moz-selection {\n  background: transparent;\n}\n\n.ProseMirror-hideselection * {\n  caret-color: transparent;\n}\n\n.ProseMirror-focused .ProseMirror-gapcursor {\n  display: block;\n}\n";
@@ -592,9 +667,9 @@ class Editor extends Emitter {
     this.events = ['init', 'transaction', 'update', 'focus', 'blur', 'paste', 'drop'];
     this.init(options);
   }
+
   init(options = {}) {
-    this.setOptions({
-      ...this.defaultOptions,
+    this.setOptions({ ...this.defaultOptions,
       ...options
     });
     this.focused = false;
@@ -614,86 +689,101 @@ class Editor extends Emitter {
     this.view = this.createView();
     this.commands = this.createCommands();
     this.setActiveNodesAndMarks();
+
     if (this.options.injectCSS) {
       injectCSS(css);
     }
+
     if (this.options.autoFocus !== null) {
       this.focus(this.options.autoFocus);
     }
+
     this.events.forEach(name => {
-      this.on(name, this.options[camelCase(`on ${name}`)] || (() => {}));
+      this.on(name, this.options[camelCase("on ".concat(name))] || (() => {}));
     });
     this.emit('init', {
       view: this.view,
       state: this.state
-    });
+    }); // give extension manager access to our view
 
-    // give extension manager access to our view
     this.extensions.view = this.view;
   }
+
   setOptions(options) {
-    this.options = {
-      ...this.options,
+    this.options = { ...this.options,
       ...options
     };
+
     if (this.view && this.state) {
       this.view.updateState(this.state);
     }
   }
+
   get builtInExtensions() {
     if (!this.options.useBuiltInExtensions) {
       return [];
     }
+
     return [new Doc(), new Text(), new Paragraph()];
   }
+
   get state() {
     return this.view ? this.view.state : null;
   }
+
   createExtensions() {
     return new ExtensionManager([...this.builtInExtensions, ...this.options.extensions], this);
   }
+
   createPlugins() {
     return this.extensions.plugins;
   }
+
   createKeymaps() {
     return this.extensions.keymaps({
       schema: this.schema
     });
   }
+
   createInputRules() {
     return this.extensions.inputRules({
       schema: this.schema,
       excludedExtensions: this.options.disableInputRules
     });
   }
+
   createPasteRules() {
     return this.extensions.pasteRules({
       schema: this.schema,
       excludedExtensions: this.options.disablePasteRules
     });
   }
+
   createCommands() {
     return this.extensions.commands({
       schema: this.schema,
       view: this.view
     });
   }
+
   createNodes() {
     return this.extensions.nodes;
   }
+
   createMarks() {
     return this.extensions.marks;
   }
+
   createSchema() {
     return new Schema({
       topNode: this.options.topNode,
-      nodes: {
-        ...this.nodes,
+      nodes: { ...this.nodes,
         ...this.extensions.nodeExtensions
       },
       marks: this.marks
     });
   }
+
   createState() {
     return EditorState.create({
       schema: this.schema,
@@ -740,10 +830,12 @@ class Editor extends Emitter {
       })]
     });
   }
+
   createDocument(content, parseOptions = this.options.parseOptions) {
     if (content === null) {
       return this.schema.nodeFromJSON(this.options.emptyDocument);
     }
+
     if (typeof content === 'object') {
       try {
         return this.schema.nodeFromJSON(content);
@@ -752,14 +844,17 @@ class Editor extends Emitter {
         return this.schema.nodeFromJSON(this.options.emptyDocument);
       }
     }
+
     if (typeof content === 'string') {
-      const htmlString = `<div>${content}</div>`;
+      const htmlString = "<div>".concat(content, "</div>");
       const parser = new window.DOMParser();
       const element = parser.parseFromString(htmlString, 'text/html').body.firstElementChild;
       return DOMParser.fromSchema(this.schema).parse(element, parseOptions);
     }
+
     return false;
   }
+
   createView() {
     return new EditorView(this.element, {
       state: this.createState(),
@@ -772,10 +867,12 @@ class Editor extends Emitter {
       dispatchTransaction: this.dispatchTransaction.bind(this)
     });
   }
+
   setParentComponent(component = null) {
     if (!component) {
       return;
     }
+
     this.view.setProps({
       nodeViews: this.initNodeViews({
         parent: component,
@@ -783,6 +880,7 @@ class Editor extends Emitter {
       })
     });
   }
+
   initNodeViews({
     parent,
     extensions
@@ -800,12 +898,13 @@ class Editor extends Emitter {
           decorations
         });
       };
-      return {
-        ...nodeViews,
+
+      return { ...nodeViews,
         [extension.name]: nodeView
       };
     }, {});
   }
+
   dispatchTransaction(transaction) {
     const newState = this.state.apply(transaction);
     this.view.updateState(newState);
@@ -820,11 +919,14 @@ class Editor extends Emitter {
       state: this.state,
       transaction
     });
+
     if (!transaction.docChanged || transaction.getMeta('preventUpdate')) {
       return;
     }
+
     this.emitUpdate(transaction);
   }
+
   emitUpdate(transaction) {
     this.emit('update', {
       getHTML: this.getHTML.bind(this),
@@ -833,16 +935,19 @@ class Editor extends Emitter {
       transaction
     });
   }
+
   resolveSelection(position = null) {
     if (this.selection && position === null) {
       return this.selection;
     }
+
     if (position === 'start' || position === true) {
       return {
         from: 0,
         to: 0
       };
     }
+
     if (position === 'end') {
       const {
         doc
@@ -852,15 +957,18 @@ class Editor extends Emitter {
         to: doc.content.size
       };
     }
+
     return {
       from: position,
       to: position
     };
   }
+
   focus(position = null) {
     if (this.view.focused && position === null || position === false) {
       return;
     }
+
     const {
       from,
       to
@@ -868,6 +976,7 @@ class Editor extends Emitter {
     this.setSelection(from, to);
     setTimeout(() => this.view.focus(), 10);
   }
+
   setSelection(from = 0, to = 0) {
     const {
       doc,
@@ -879,24 +988,29 @@ class Editor extends Emitter {
     const transaction = tr.setSelection(selection);
     this.view.dispatch(transaction);
   }
+
   blur() {
     this.view.dom.blur();
   }
+
   getSchemaJSON() {
     return JSON.parse(JSON.stringify({
       nodes: this.extensions.nodes,
       marks: this.extensions.marks
     }));
   }
+
   getHTML() {
     const div = document.createElement('div');
     const fragment = DOMSerializer.fromSchema(this.schema).serializeFragment(this.state.doc.content);
     div.appendChild(fragment);
     return div.innerHTML;
   }
+
   getJSON() {
     return this.state.doc.toJSON();
   }
+
   setContent(content = {}, emitUpdate = false, parseOptions) {
     const {
       doc,
@@ -907,40 +1021,40 @@ class Editor extends Emitter {
     const transaction = tr.setSelection(selection).replaceSelectionWith(document, false).setMeta('preventUpdate', !emitUpdate);
     this.view.dispatch(transaction);
   }
+
   clearContent(emitUpdate = false) {
     this.setContent(this.options.emptyDocument, emitUpdate);
   }
+
   setActiveNodesAndMarks() {
-    this.activeMarks = Object.entries(this.schema.marks).reduce((marks, [name, mark]) => ({
-      ...marks,
+    this.activeMarks = Object.entries(this.schema.marks).reduce((marks, [name, mark]) => ({ ...marks,
       [name]: (attrs = {}) => markIsActive(this.state, mark, attrs)
     }), {});
-    this.activeMarkAttrs = Object.entries(this.schema.marks).reduce((marks, [name, mark]) => ({
-      ...marks,
+    this.activeMarkAttrs = Object.entries(this.schema.marks).reduce((marks, [name, mark]) => ({ ...marks,
       [name]: getMarkAttrs(this.state, mark)
     }), {});
-    this.activeNodes = Object.entries(this.schema.nodes).reduce((nodes, [name, node]) => ({
-      ...nodes,
+    this.activeNodes = Object.entries(this.schema.nodes).reduce((nodes, [name, node]) => ({ ...nodes,
       [name]: (attrs = {}) => nodeIsActive(this.state, node, attrs)
     }), {});
   }
+
   getMarkAttrs(type = null) {
     return this.activeMarkAttrs[type];
   }
+
   getNodeAttrs(type = null) {
-    return {
-      ...getNodeAttrs(this.state, this.schema.nodes[type])
+    return { ...getNodeAttrs(this.state, this.schema.nodes[type])
     };
   }
+
   get isActive() {
-    return Object.entries({
-      ...this.activeMarks,
+    return Object.entries({ ...this.activeMarks,
       ...this.activeNodes
-    }).reduce((types, [name, value]) => ({
-      ...types,
+    }).reduce((types, [name, value]) => ({ ...types,
       [name]: (attrs = {}) => value(attrs)
     }), {});
   }
+
   registerPlugin(plugin = null, handlePlugins) {
     const plugins = typeof handlePlugins === 'function' ? handlePlugins(plugin, this.state.plugins) : [plugin, ...this.state.plugins];
     const newState = this.state.reconfigure({
@@ -948,21 +1062,26 @@ class Editor extends Emitter {
     });
     this.view.updateState(newState);
   }
+
   unregisterPlugin(name = null) {
     if (!name || !this.view.docView) {
       return;
     }
+
     const newState = this.state.reconfigure({
-      plugins: this.state.plugins.filter(plugin => !plugin.key.startsWith(`${name}$`))
+      plugins: this.state.plugins.filter(plugin => !plugin.key.startsWith("".concat(name, "$")))
     });
     this.view.updateState(newState);
   }
+
   destroy() {
     if (!this.view) {
       return;
     }
+
     this.view.destroy();
   }
+
 }
 
 var EditorContent = {
@@ -975,6 +1094,7 @@ var EditorContent = {
   watch: {
     editor: {
       immediate: true,
+
       handler(editor) {
         if (editor && editor.element) {
           this.$nextTick(() => {
@@ -983,14 +1103,18 @@ var EditorContent = {
           });
         }
       }
+
     }
   },
+
   render(createElement) {
     return createElement('div');
   },
+
   beforeDestroy() {
     this.editor.element = this.$el;
   }
+
 };
 
 class Menu {
@@ -998,39 +1122,47 @@ class Menu {
     options
   }) {
     this.options = options;
-    this.preventHide = false;
+    this.preventHide = false; // the mousedown event is fired before blur so we can prevent it
 
-    // the mousedown event is fired before blur so we can prevent it
     this.mousedownHandler = this.handleClick.bind(this);
     this.options.element.addEventListener('mousedown', this.mousedownHandler, {
       capture: true
     });
+
     this.blurHandler = () => {
       if (this.preventHide) {
         this.preventHide = false;
         return;
       }
+
       this.options.editor.emit('menubar:focusUpdate', false);
     };
+
     this.options.editor.on('blur', this.blurHandler);
   }
+
   handleClick() {
     this.preventHide = true;
   }
+
   destroy() {
     this.options.element.removeEventListener('mousedown', this.mousedownHandler);
     this.options.editor.off('blur', this.blurHandler);
   }
+
 }
+
 function MenuBar (options) {
   return new Plugin({
     key: new PluginKey('menu_bar'),
+
     view(editorView) {
       return new Menu({
         editorView,
         options
       });
     }
+
   });
 }
 
@@ -1041,14 +1173,17 @@ var EditorMenuBar = {
       type: Object
     }
   },
+
   data() {
     return {
       focused: false
     };
   },
+
   watch: {
     editor: {
       immediate: true,
+
       handler(editor) {
         if (editor) {
           this.$nextTick(() => {
@@ -1066,12 +1201,15 @@ var EditorMenuBar = {
           });
         }
       }
+
     }
   },
+
   render() {
     if (!this.editor) {
       return null;
     }
+
     return this.$scopedSlots.default({
       focused: this.focused,
       focus: this.editor.focus,
@@ -1081,6 +1219,7 @@ var EditorMenuBar = {
       getNodeAttrs: this.editor.getNodeAttrs.bind(this.editor)
     });
   }
+
 };
 
 function textRange(node, from, to) {
@@ -1089,10 +1228,12 @@ function textRange(node, from, to) {
   range.setStart(node, from || 0);
   return range;
 }
+
 function singleRect(object, bias) {
   const rects = object.getClientRects();
   return !rects.length ? object.getBoundingClientRect() : rects[bias < 0 ? 0 : rects.length - 1];
 }
+
 function coordsAtPos(view, pos, end = false) {
   const {
     node,
@@ -1100,6 +1241,7 @@ function coordsAtPos(view, pos, end = false) {
   } = view.docView.domFromPos(pos);
   let side;
   let rect;
+
   if (node.nodeType === 3) {
     if (end && offset < node.nodeValue.length) {
       rect = singleRect(textRange(node, offset - 1, offset), -1);
@@ -1114,6 +1256,7 @@ function coordsAtPos(view, pos, end = false) {
       rect = singleRect(child.nodeType === 3 ? textRange(child) : child, -1);
       side = 'left';
     }
+
     if ((!rect || rect.top === rect.bottom) && offset) {
       const child = node.childNodes[offset - 1];
       rect = singleRect(child.nodeType === 3 ? textRange(child) : child, 1);
@@ -1123,6 +1266,7 @@ function coordsAtPos(view, pos, end = false) {
     rect = node.getBoundingClientRect();
     side = 'left';
   }
+
   const x = rect[side];
   return {
     top: rect.top,
@@ -1131,13 +1275,13 @@ function coordsAtPos(view, pos, end = false) {
     right: x
   };
 }
+
 class Menu$1 {
   constructor({
     options,
     editorView
   }) {
-    this.options = {
-      ...{
+    this.options = { ...{
         element: null,
         keepInBounds: true,
         onUpdate: () => false
@@ -1149,19 +1293,21 @@ class Menu$1 {
     this.left = 0;
     this.bottom = 0;
     this.top = 0;
-    this.preventHide = false;
+    this.preventHide = false; // the mousedown event is fired before blur so we can prevent it
 
-    // the mousedown event is fired before blur so we can prevent it
     this.mousedownHandler = this.handleClick.bind(this);
     this.options.element.addEventListener('mousedown', this.mousedownHandler, {
       capture: true
     });
+
     this.focusHandler = ({
       view
     }) => {
       this.update(view);
     };
+
     this.options.editor.on('focus', this.focusHandler);
+
     this.blurHandler = ({
       event
     }) => {
@@ -1169,64 +1315,68 @@ class Menu$1 {
         this.preventHide = false;
         return;
       }
+
       this.hide(event);
     };
+
     this.options.editor.on('blur', this.blurHandler);
   }
+
   handleClick() {
     this.preventHide = true;
   }
+
   update(view, lastState) {
     const {
       state
     } = view;
+
     if (view.composing) {
       return;
-    }
+    } // Don't do anything if the document/selection didn't change
 
-    // Don't do anything if the document/selection didn't change
+
     if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection)) {
       return;
-    }
+    } // Hide the tooltip if the selection is empty
 
-    // Hide the tooltip if the selection is empty
+
     if (state.selection.empty) {
       this.hide();
       return;
-    }
+    } // Otherwise, reposition it and update its content
 
-    // Otherwise, reposition it and update its content
+
     const {
       from,
       to
-    } = state.selection;
-
-    // These are in screen coordinates
+    } = state.selection; // These are in screen coordinates
     // We can't use EditorView.cordsAtPos here because it can't handle linebreaks correctly
     // See: https://github.com/ProseMirror/prosemirror-view/pull/47
-    const start = coordsAtPos(view, from);
-    const end = coordsAtPos(view, to, true);
 
-    // The box in which the tooltip is positioned, to use as base
+    const start = coordsAtPos(view, from);
+    const end = coordsAtPos(view, to, true); // The box in which the tooltip is positioned, to use as base
+
     const parent = this.options.element.offsetParent;
+
     if (!parent) {
       this.hide();
       return;
     }
+
     const box = parent.getBoundingClientRect();
-    const el = this.options.element.getBoundingClientRect();
-
-    // Find a center-ish x position from the selection endpoints (when
+    const el = this.options.element.getBoundingClientRect(); // Find a center-ish x position from the selection endpoints (when
     // crossing lines, end may be more to the left)
-    const left = (start.left + end.left) / 2 - box.left;
 
-    // Keep the menuBubble in the bounding box of the offsetParent i
+    const left = (start.left + end.left) / 2 - box.left; // Keep the menuBubble in the bounding box of the offsetParent i
+
     this.left = Math.round(this.options.keepInBounds ? Math.min(box.width - el.width / 2, Math.max(left, el.width / 2)) : left);
     this.bottom = Math.round(box.bottom - start.top);
     this.top = Math.round(end.bottom - box.top);
     this.isActive = true;
     this.sendUpdate();
   }
+
   sendUpdate() {
     this.options.onUpdate({
       isActive: this.isActive,
@@ -1235,28 +1385,35 @@ class Menu$1 {
       top: this.top
     });
   }
+
   hide(event) {
     if (event && event.relatedTarget && this.options.element.parentNode && this.options.element.parentNode.contains(event.relatedTarget)) {
       return;
     }
+
     this.isActive = false;
     this.sendUpdate();
   }
+
   destroy() {
     this.options.element.removeEventListener('mousedown', this.mousedownHandler);
     this.options.editor.off('focus', this.focusHandler);
     this.options.editor.off('blur', this.blurHandler);
   }
+
 }
+
 function MenuBubble (options) {
   return new Plugin({
     key: new PluginKey('menu_bubble'),
+
     view(editorView) {
       return new Menu$1({
         editorView,
         options
       });
     }
+
   });
 }
 
@@ -1271,6 +1428,7 @@ var EditorMenuBubble = {
       type: Boolean
     }
   },
+
   data() {
     return {
       menu: {
@@ -1280,9 +1438,11 @@ var EditorMenuBubble = {
       }
     };
   },
+
   watch: {
     editor: {
       immediate: true,
+
       handler(editor) {
         if (editor) {
           this.$nextTick(() => {
@@ -1297,18 +1457,22 @@ var EditorMenuBubble = {
                 } else if (!menu.isActive && this.menu.isActive === true) {
                   this.$emit('hide', menu);
                 }
+
                 this.menu = menu;
               }
             }));
           });
         }
       }
+
     }
   },
+
   render() {
     if (!this.editor) {
       return null;
     }
+
     return this.$scopedSlots.default({
       focused: this.editor.view.focused,
       focus: this.editor.focus,
@@ -1319,9 +1483,11 @@ var EditorMenuBubble = {
       menu: this.menu
     });
   },
+
   beforeDestroy() {
     this.editor.unregisterPlugin('menu_bubble');
   }
+
 };
 
 class Menu$2 {
@@ -1329,8 +1495,7 @@ class Menu$2 {
     options,
     editorView
   }) {
-    this.options = {
-      ...{
+    this.options = { ...{
         resizeObserver: true,
         element: null,
         onUpdate: () => false
@@ -1340,19 +1505,21 @@ class Menu$2 {
     this.preventHide = false;
     this.editorView = editorView;
     this.isActive = false;
-    this.top = 0;
+    this.top = 0; // the mousedown event is fired before blur so we can prevent it
 
-    // the mousedown event is fired before blur so we can prevent it
     this.mousedownHandler = this.handleClick.bind(this);
     this.options.element.addEventListener('mousedown', this.mousedownHandler, {
       capture: true
     });
+
     this.focusHandler = ({
       view
     }) => {
       this.update(view);
     };
+
     this.options.editor.on('focus', this.focusHandler);
+
     this.blurHandler = ({
       event
     }) => {
@@ -1360,12 +1527,13 @@ class Menu$2 {
         this.preventHide = false;
         return;
       }
+
       this.hide(event);
     };
-    this.options.editor.on('blur', this.blurHandler);
 
-    // sometimes we have to update the position
+    this.options.editor.on('blur', this.blurHandler); // sometimes we have to update the position
     // because of a loaded images for example
+
     if (this.options.resizeObserver && window.ResizeObserver) {
       this.resizeObserver = new ResizeObserver(() => {
         if (this.isActive) {
@@ -1375,33 +1543,40 @@ class Menu$2 {
       this.resizeObserver.observe(this.editorView.dom);
     }
   }
+
   handleClick() {
     this.preventHide = true;
   }
+
   update(view, lastState) {
     const {
       state
-    } = view;
+    } = view; // Don't do anything if the document/selection didn't change
 
-    // Don't do anything if the document/selection didn't change
     if (lastState && lastState.doc.eq(state.doc) && lastState.selection.eq(state.selection)) {
       return;
     }
+
     if (!state.selection.empty) {
       this.hide();
       return;
     }
+
     const currentDom = view.domAtPos(state.selection.anchor);
     const isActive = currentDom.node.innerHTML === '<br>' && currentDom.node.tagName === 'P' && currentDom.node.parentNode === view.dom;
+
     if (!isActive) {
       this.hide();
       return;
     }
+
     const parent = this.options.element.offsetParent;
+
     if (!parent) {
       this.hide();
       return;
     }
+
     const editorBoundings = parent.getBoundingClientRect();
     const cursorBoundings = view.coordsAtPos(state.selection.anchor);
     const top = cursorBoundings.top - editorBoundings.top;
@@ -1409,37 +1584,47 @@ class Menu$2 {
     this.top = top;
     this.sendUpdate();
   }
+
   sendUpdate() {
     this.options.onUpdate({
       isActive: this.isActive,
       top: this.top
     });
   }
+
   hide(event) {
     if (event && event.relatedTarget && this.options.element.parentNode && this.options.element.parentNode.contains(event.relatedTarget)) {
       return;
     }
+
     this.isActive = false;
     this.sendUpdate();
   }
+
   destroy() {
     this.options.element.removeEventListener('mousedown', this.mousedownHandler);
+
     if (this.resizeObserver) {
       this.resizeObserver.unobserve(this.editorView.dom);
     }
+
     this.options.editor.off('focus', this.focusHandler);
     this.options.editor.off('blur', this.blurHandler);
   }
+
 }
+
 function FloatingMenu (options) {
   return new Plugin({
     key: new PluginKey('floating_menu'),
+
     view(editorView) {
       return new Menu$2({
         editorView,
         options
       });
     }
+
   });
 }
 
@@ -1450,6 +1635,7 @@ var EditorFloatingMenu = {
       type: Object
     }
   },
+
   data() {
     return {
       menu: {
@@ -1459,9 +1645,11 @@ var EditorFloatingMenu = {
       }
     };
   },
+
   watch: {
     editor: {
       immediate: true,
+
       handler(editor) {
         if (editor) {
           this.$nextTick(() => {
@@ -1475,18 +1663,22 @@ var EditorFloatingMenu = {
                 } else if (!menu.isActive && this.menu.isActive === true) {
                   this.$emit('hide', menu);
                 }
+
                 this.menu = menu;
               }
             }));
           });
         }
       }
+
     }
   },
+
   render() {
     if (!this.editor) {
       return null;
     }
+
     return this.$scopedSlots.default({
       focused: this.editor.view.focused,
       focus: this.editor.focus,
@@ -1497,9 +1689,11 @@ var EditorFloatingMenu = {
       menu: this.menu
     });
   },
+
   beforeDestroy() {
     this.editor.unregisterPlugin('floating_menu');
   }
+
 };
 
 export { ALIGN_PATTERN, Doc, Editor, EditorContent, EditorFloatingMenu, EditorMenuBar, EditorMenuBubble, Extension, Mark, Node, Paragraph, Text, getParagraphDOM, getParagraphNodeAttrs };

@@ -1,7 +1,7 @@
 
     /*!
     * tiptap-commands v1.14.7
-    * (c) 2024 überdosis GbR (limited liability)
+    * (c) 2020 überdosis GbR (limited liability)
     * @license MIT
     */
   
@@ -41,6 +41,7 @@ function getMarksBetween(start, end, state) {
   });
   return marks;
 }
+
 function markInputRule (regexp, markType, getAttrs) {
   return new prosemirrorInputrules.InputRule(regexp, (state, match, start, end) => {
     const attrs = getAttrs instanceof Function ? getAttrs(match) : getAttrs;
@@ -50,6 +51,7 @@ function markInputRule (regexp, markType, getAttrs) {
     const m = match.length - 1;
     let markEnd = end;
     let markStart = start;
+
     if (match[m]) {
       const matchStart = start + match[0].indexOf(match[m - 1]);
       const matchEnd = matchStart + match[m - 1].length - 1;
@@ -61,18 +63,23 @@ function markInputRule (regexp, markType, getAttrs) {
         } = item.mark.type;
         return excluded.find(type => type.name === markType.name);
       }).filter(item => item.end > matchStart);
+
       if (excludedMarks.length) {
         return false;
       }
+
       if (textEnd < matchEnd) {
         tr.delete(textEnd, matchEnd);
       }
+
       if (textStart > matchStart) {
         tr.delete(matchStart, textStart);
       }
+
       markStart = matchStart;
       markEnd = markStart + match[m].length;
     }
+
     tr.addMark(markStart, markEnd, markType.create(attrs));
     tr.removeStoredMark(markType);
     return tr;
@@ -85,9 +92,11 @@ function nodeInputRule (regexp, type, getAttrs) {
     const {
       tr
     } = state;
+
     if (match[0]) {
       tr.replaceWith(start - 1, end, type.create(attrs));
     }
+
     return tr;
   });
 }
@@ -102,19 +111,24 @@ function pasteRule (regexp, type, getAttrs) {
         } = child;
         let pos = 0;
         let match;
+
         do {
           match = regexp.exec(text);
+
           if (match) {
             const start = match.index;
             const end = start + match[0].length;
             const attrs = getAttrs instanceof Function ? getAttrs(match[0]) : getAttrs;
+
             if (start > 0) {
               nodes.push(child.cut(pos, start));
             }
+
             nodes.push(child.cut(start, end).mark(type.create(attrs).addToSet(child.marks)));
             pos = end;
           }
         } while (match);
+
         if (pos < text.length) {
           nodes.push(child.cut(pos));
         }
@@ -124,6 +138,7 @@ function pasteRule (regexp, type, getAttrs) {
     });
     return prosemirrorModel.Fragment.fromArray(nodes);
   };
+
   return new prosemirrorState.Plugin({
     props: {
       transformPasted: slice => new prosemirrorModel.Slice(handler(slice.content), slice.openStart, slice.openEnd)
@@ -142,29 +157,27 @@ function markPasteRule (regexp, type, getAttrs) {
         } = child;
         let pos = 0;
         let match;
-        const isLink = !!marks.filter(x => x.type.name === 'link')[0];
+        const isLink = !!marks.filter(x => x.type.name === 'link')[0]; // eslint-disable-next-line
 
-        // eslint-disable-next-line
         while (!isLink && (match = regexp.exec(text)) !== null) {
           if (parent && parent.type.allowsMarkType(type) && match[1]) {
             const start = match.index;
             const end = start + match[0].length;
             const textStart = start + match[0].indexOf(match[1]);
             const textEnd = textStart + match[1].length;
-            const attrs = getAttrs instanceof Function ? getAttrs(match) : getAttrs;
+            const attrs = getAttrs instanceof Function ? getAttrs(match) : getAttrs; // adding text before markdown to nodes
 
-            // adding text before markdown to nodes
             if (start > 0) {
               nodes.push(child.cut(pos, start));
-            }
+            } // adding the markdown part to nodes
 
-            // adding the markdown part to nodes
+
             nodes.push(child.cut(textStart, textEnd).mark(type.create(attrs).addToSet(child.marks)));
             pos = end;
           }
-        }
+        } // adding rest of text to nodes
 
-        // adding rest of text to nodes
+
         if (pos < text.length) {
           nodes.push(child.cut(pos));
         }
@@ -174,6 +187,7 @@ function markPasteRule (regexp, type, getAttrs) {
     });
     return prosemirrorModel.Fragment.fromArray(nodes);
   };
+
   return new prosemirrorState.Plugin({
     props: {
       transformPasted: slice => new prosemirrorModel.Slice(handler(slice.content), slice.openStart, slice.openEnd)
@@ -195,11 +209,13 @@ function removeMark (type) {
       $from,
       empty
     } = selection;
+
     if (empty) {
       const range = tiptapUtils.getMarkRange($from, type);
       from = range.from;
       to = range.to;
     }
+
     tr.removeMark(from, to, type);
     return dispatch(tr);
   };
@@ -214,12 +230,15 @@ function replaceText (range = null, type, attrs = {}) {
     const index = $from.index();
     const from = range ? range.from : $from.pos;
     const to = range ? range.to : $to.pos;
+
     if (!$from.parent.canReplaceWith(index, index, type)) {
       return false;
     }
+
     if (dispatch) {
       dispatch(state.tr.replaceWith(from, to, type.create(attrs)));
     }
+
     return true;
   };
 }
@@ -230,12 +249,15 @@ function setInlineBlockType (type, attrs = {}) {
       $from
     } = state.selection;
     const index = $from.index();
+
     if (!$from.parent.canReplaceWith(index, index, type)) {
       return false;
     }
+
     if (dispatch) {
       dispatch(state.tr.replaceSelectionWith(type.create(attrs)));
     }
+
     return true;
   };
 }
@@ -244,6 +266,7 @@ function dispatchTasks(tasks, align, selectionIsCell, tr, dispatch) {
   if (!tasks.length) {
     return false;
   }
+
   let transformation = tr;
   tasks.forEach(({
     cell,
@@ -256,26 +279,31 @@ function dispatchTasks(tasks, align, selectionIsCell, tr, dispatch) {
       })(transformation);
       return;
     }
-    const attrs = {
-      ...node.attrs,
+
+    const attrs = { ...node.attrs,
       align: selectionIsCell ? align : null
     };
     transformation = transformation.setNodeMarkup(pos, node.type, attrs, node.marks);
   });
+
   if (dispatch) {
     dispatch(transformation);
   }
+
   return true;
 }
+
 function setTextAlignment(type, attrs = {}) {
   return (state, dispatch) => {
     const {
       doc,
       selection
     } = state;
+
     if (!selection || !doc) {
       return false;
     }
+
     const {
       paragraph,
       heading,
@@ -291,9 +319,8 @@ function setTextAlignment(type, attrs = {}) {
       tr
     } = state;
     const selectionIsCell = prosemirrorUtils.isCellSelection(selection);
-    const alignment = attrs.align || null;
+    const alignment = attrs.align || null; // If there is no text selected, or the text is within a single node
 
-    // If there is no text selected, or the text is within a single node
     if (selection.empty || ranges.length === 1 && ranges[0].$from.parent.eq(ranges[0].$to.parent) && !selectionIsCell) {
       const {
         depth,
@@ -303,10 +330,12 @@ function setTextAlignment(type, attrs = {}) {
         node: parent,
         types: paragraph
       }) ? [blockquote, listItem, tableCell, tableHeader] : parent.type;
+
       const predicate = node => tiptapUtils.nodeEqualsType({
         node,
         types: predicateTypes
       });
+
       const {
         pos,
         node: {
@@ -315,16 +344,19 @@ function setTextAlignment(type, attrs = {}) {
           marks: nMarks
         }
       } = prosemirrorUtils.findParentNode(predicate)(selection);
-      tr = tr.setNodeMarkup(pos, nType, {
-        ...nAttrs,
+      tr = tr.setNodeMarkup(pos, nType, { ...nAttrs,
         align: alignment
       }, nMarks);
+
       if (dispatch) {
         dispatch(tr);
       }
+
       return true;
     }
+
     const tasks = [];
+
     if (selectionIsCell) {
       const tableTypes = [tableHeader, tableCell];
       ranges.forEach(range => {
@@ -336,6 +368,7 @@ function setTextAlignment(type, attrs = {}) {
             parent: toParent
           }
         } = range;
+
         if (!fromParent.eq(toParent) || !range.$from.sameParent(range.$to) || !tiptapUtils.nodeEqualsType({
           node: fromParent,
           types: tableTypes
@@ -345,6 +378,7 @@ function setTextAlignment(type, attrs = {}) {
         })) {
           return;
         }
+
         if (fromParent.attrs.align !== alignment) {
           tasks.push({
             node: fromParent,
@@ -352,9 +386,11 @@ function setTextAlignment(type, attrs = {}) {
             cell: prosemirrorUtils.findCellClosestToPos(range.$from)
           });
         }
+
         const predicate = ({
           align
         }) => typeof align !== 'undefined' && align !== null;
+
         prosemirrorUtils.findChildrenByAttr(fromParent, predicate, true).forEach(({
           node,
           pos
@@ -365,6 +401,7 @@ function setTextAlignment(type, attrs = {}) {
           })) {
             return;
           }
+
           tasks.push({
             node,
             pos: range.$from.pos + pos
@@ -373,6 +410,7 @@ function setTextAlignment(type, attrs = {}) {
       });
       return dispatchTasks(tasks, alignment, true, tr, dispatch);
     }
+
     doc.nodesBetween(selection.from, selection.to, (node, pos) => {
       if (!tiptapUtils.nodeEqualsType({
         node,
@@ -380,10 +418,13 @@ function setTextAlignment(type, attrs = {}) {
       })) {
         return true;
       }
+
       const align = node.attrs.align || null;
+
       if (align === alignment) {
         return true;
       }
+
       tasks.push({
         node,
         pos
@@ -397,16 +438,17 @@ function setTextAlignment(type, attrs = {}) {
   };
 }
 
-// this is a copy of canSplit
 // see https://github.com/ProseMirror/prosemirror-transform/blob/main/src/structure.js
-
 // Since this piece of code was "borrowed" from prosemirror, ESLint rules are ignored.
+
 /* eslint-disable max-len, no-plusplus, no-undef, eqeqeq */
+
 function canSplit(doc, pos, depth = 1, typesAfter) {
   const $pos = doc.resolve(pos);
   const base = $pos.depth - depth;
   const innerType = typesAfter && typesAfter[typesAfter.length - 1] || $pos.parent;
   if (base < 0 || $pos.parent.type.spec.isolating || !$pos.parent.canReplace($pos.index(), $pos.parent.childCount) || !innerType.type.validContent($pos.parent.content.cutByIndex($pos.index(), $pos.parent.childCount))) return false;
+
   for (let d = $pos.depth - 1, i = depth - 2; d > base; d--, i--) {
     const node = $pos.node(d);
     const index = $pos.index(d);
@@ -414,20 +456,20 @@ function canSplit(doc, pos, depth = 1, typesAfter) {
     let rest = node.content.cutByIndex(index, node.childCount);
     const after = typesAfter && typesAfter[i] || node;
     if (after != node) rest = rest.replaceChild(0, after.type.create(after.attrs));
-
     /* Change starts from here */
     // if (!node.canReplace(index + 1, node.childCount) || !after.type.validContent(rest))
     //   return false
+
     if (!node.canReplace(index + 1, node.childCount)) return false;
     /* Change ends here */
   }
+
   const index = $pos.indexAfter(base);
   const baseType = typesAfter && typesAfter[0];
   return $pos.node(base).canReplaceWith(index, index, baseType ? baseType.type : $pos.node(base + 1).type);
-}
-
-// this is a copy of splitListItem
+} // this is a copy of splitListItem
 // see https://github.com/ProseMirror/prosemirror-schema-list/blob/main/src/schema-list.js
+
 
 function splitToDefaultListItem(itemType) {
   return function (state, dispatch) {
@@ -439,30 +481,35 @@ function splitToDefaultListItem(itemType) {
     if (node && node.isBlock || $from.depth < 2 || !$from.sameParent($to)) return false;
     const grandParent = $from.node(-1);
     if (grandParent.type != itemType) return false;
+
     if ($from.parent.content.size == 0) {
       // In an empty block. If this is a nested list, the wrapping
       // list item should be split. Otherwise, bail out and let next
       // command handle lifting.
       if ($from.depth == 2 || $from.node(-3).type != itemType || $from.index(-2) != $from.node(-2).childCount - 1) return false;
+
       if (dispatch) {
         let wrap = prosemirrorModel.Fragment.empty;
-        const keepItem = $from.index(-1) > 0;
-        // Build a fragment containing empty versions of the structure
+        const keepItem = $from.index(-1) > 0; // Build a fragment containing empty versions of the structure
         // from the outer list item to the parent node of the cursor
-        for (let d = $from.depth - (keepItem ? 1 : 2); d >= $from.depth - 3; d--) wrap = prosemirrorModel.Fragment.from($from.node(d).copy(wrap));
-        // Add a second list item with an empty default start node
+
+        for (let d = $from.depth - (keepItem ? 1 : 2); d >= $from.depth - 3; d--) wrap = prosemirrorModel.Fragment.from($from.node(d).copy(wrap)); // Add a second list item with an empty default start node
+
+
         wrap = wrap.append(prosemirrorModel.Fragment.from(itemType.createAndFill()));
         const tr = state.tr.replace($from.before(keepItem ? null : -1), $from.after(-3), new prosemirrorModel.Slice(wrap, keepItem ? 3 : 2, 2));
         tr.setSelection(state.selection.constructor.near(tr.doc.resolve($from.pos + (keepItem ? 3 : 2))));
         dispatch(tr.scrollIntoView());
       }
+
       return true;
     }
+
     const nextType = $to.pos == $from.end() ? grandParent.contentMatchAt($from.indexAfter(-1)).defaultType : null;
     const tr = state.tr.delete($from.pos, $to.pos);
-
     /* Change starts from here */
     // let types = nextType && [null, {type: nextType}]
+
     let types = nextType && [{
       type: itemType
     }, {
@@ -484,9 +531,11 @@ function toggleBlockType(type, toggletype, attrs = {}) {
   return (state, dispatch, view) => {
     const isActive = tiptapUtils.nodeIsActive(state, type, attrs);
     const attributes = tiptapUtils.getNodeAttrs(state, type, attrs);
+
     if (isActive) {
       return prosemirrorCommands.setBlockType(toggletype, attributes)(state, dispatch, view);
     }
+
     return prosemirrorCommands.setBlockType(type, attributes)(state, dispatch, view);
   };
 }
@@ -494,6 +543,7 @@ function toggleBlockType(type, toggletype, attrs = {}) {
 function isList(node, schema) {
   return node.type === schema.nodes.bullet_list || node.type === schema.nodes.ordered_list || node.type === schema.nodes.todo_list;
 }
+
 function toggleList(listType, itemType) {
   return (state, dispatch, view) => {
     const {
@@ -505,25 +555,32 @@ function toggleList(listType, itemType) {
       $to
     } = selection;
     const range = $from.blockRange($to);
+
     if (!range) {
       return false;
     }
+
     const parentList = prosemirrorUtils.findParentNode(node => isList(node, schema))(selection);
+
     if (range.depth >= 1 && parentList && range.depth - parentList.depth <= 1) {
       if (parentList.node.type === listType) {
         return prosemirrorSchemaList.liftListItem(itemType)(state, dispatch, view);
       }
+
       if (isList(parentList.node, schema) && listType.validContent(parentList.node.content)) {
         const {
           tr
         } = state;
         tr.setNodeMarkup(parentList.pos, listType);
+
         if (dispatch) {
           dispatch(tr);
         }
+
         return false;
       }
     }
+
     return prosemirrorSchemaList.wrapInList(listType)(state, dispatch, view);
   };
 }
@@ -531,9 +588,11 @@ function toggleList(listType, itemType) {
 function toggleWrap (type, attrs = {}) {
   return (state, dispatch, view) => {
     const isActive = tiptapUtils.nodeIsActive(state, type, attrs);
+
     if (isActive) {
       return prosemirrorCommands.lift(state, dispatch);
     }
+
     const attrs = tiptapUtils.getNodeAttrs(state, type);
     return prosemirrorCommands.wrapIn(type, attrs)(state, dispatch, view);
   };
@@ -554,15 +613,19 @@ function updateMark (type, attrs) {
       $from,
       empty
     } = selection;
+
     if (empty) {
       const range = tiptapUtils.getMarkRange($from, type);
       from = range.from;
       to = range.to;
     }
+
     const hasMark = doc.rangeHasMark(from, to, type);
+
     if (hasMark) {
       tr.removeMark(from, to, type);
     }
+
     tr.addMark(from, to, type.create(attrs));
     return dispatch(tr);
   };
